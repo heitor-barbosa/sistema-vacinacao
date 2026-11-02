@@ -1,53 +1,97 @@
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, When
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
 
 from .models import Agenda, Vacina
 from .serializers import AgendaFiltroSerializer, AgendaSerializer, BaixaSerializer, VacinaSerializer
 from .services import criar_agendas, dar_baixa
 
 
-class VacinaViewSet(ModelViewSet):
+def get_agendas_queryset(parametros):
+    serializer = AgendaFiltroSerializer(data=parametros)
+    serializer.is_valid(raise_exception=True)
+    filtros = serializer.validated_data
+
+    agendas = Agenda.objects.select_related("usuario", "vacina")
+
+    if "data" in filtros:
+        agendas = agendas.filter(data=filtros["data"])
+
+    if "situacao" in filtros:
+        agendas = agendas.filter(situacao=filtros["situacao"])
+
+    if "usuario" in filtros:
+        agendas = agendas.filter(usuario=filtros["usuario"])
+
+    # A prioridade garante a ordem exigida: Agendado, Realizado e Cancelado.
+    ordem_situacao = Case(
+        When(situacao=Agenda.Situacao.AGENDADO, then=0),
+        When(situacao=Agenda.Situacao.REALIZADO, then=1),
+        default=2,
+        output_field=IntegerField(),
+    )
+    agendas = agendas.order_by(ordem_situacao, "data", "hora", "id")
+
+    return agendas
+
+
+class VacinaListCreateAPIView(generics.ListCreateAPIView):
     queryset = Vacina.objects.all()
     serializer_class = VacinaSerializer
-    http_method_names = ["get", "post", "delete", "head", "options"]
 
 
-class AgendaViewSet(ModelViewSet):
-    queryset = Agenda.objects.select_related("usuario", "vacina")
+class VacinaDetailAPIView(generics.RetrieveDestroyAPIView):
+    queryset = Vacina.objects.all()
+    serializer_class = VacinaSerializer
+
+
+class AgendaListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = AgendaSerializer
-    http_method_names = ["get", "post", "delete", "head", "options"]
 
     def get_queryset(self):
-        filtros = AgendaFiltroSerializer(data=self.request.query_params)
-        filtros.is_valid(raise_exception=True)
-        return super().get_queryset().filter(**filtros.validated_data).order_by(
-            Case(
-                When(situacao=Agenda.Situacao.AGENDADO, then=Value(0)),
-                When(situacao=Agenda.Situacao.REALIZADO, then=Value(1)),
-                default=Value(2), output_field=IntegerField(),
-            ),
-            "data", "hora", "id",
-        )
+        return get_agendas_queryset(self.request.query_params)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         agendas = criar_agendas(**serializer.validated_data)
-        return Response(self.get_serializer(agendas, many=True).data, status=status.HTTP_201_CREATED)
+        resposta = self.get_serializer(agendas, many=True)
 
-    @action(detail=False, methods=["get"])
-    def hoje(self, request):
-        agendas = self.get_queryset().filter(data=timezone.localdate())
-        return Response(self.get_serializer(agendas, many=True).data)
+        return Response(
+            resposta.data,
+            status=status.HTTP_201_CREATED,
+        )
 
-    @action(detail=True, methods=["post"])
-    def baixa(self, request, pk=None):
+
+class AgendaDetailAPIView(generics.RetrieveDestroyAPIView):
+    queryset = Agenda.objects.select_related("usuario", "vacina")
+    serializer_class = AgendaSerializer
+
+
+class AgendaHojeAPIView(generics.ListAPIView):
+    serializer_class = AgendaSerializer
+
+    def get_queryset(self):
+        agendas = get_agendas_queryset(self.request.query_params)
+        hoje = timezone.localdate()
+        agendas = agendas.filter(data=hoje)
+
+        return agendas
+
+
+class AgendaBaixaAPIView(generics.GenericAPIView):
+    queryset = Agenda.objects.select_related("usuario", "vacina")
+    serializer_class = BaixaSerializer
+
+    def post(self, request, *args, **kwargs):
         agenda = self.get_object()
-        serializer = BaixaSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        agenda = dar_baixa(agenda, serializer.validated_data["situacao"])
-        return Response(self.get_serializer(agenda).data)
+
+        situacao = serializer.validated_data["situacao"]
+        agenda = dar_baixa(agenda, situacao)
+        resposta = AgendaSerializer(agenda, context=self.get_serializer_context())
+
+        return Response(resposta.data)

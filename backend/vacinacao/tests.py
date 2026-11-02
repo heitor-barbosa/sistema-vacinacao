@@ -175,12 +175,11 @@ class VacinacaoAPITests(APITestCase):
             numero=20, setor="Centro", cidade="Goiânia", uf="GO",
         )
         self.agendar(usuario=outro.pk)
-        response = self.client.get(f"/api/usuarios/{self.usuario.pk}/agendas/")
+        response = self.client.get("/api/agendas/", {"usuario": self.usuario.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual([a["id"] for a in response.data], [minha_agenda["id"]])
         for campo in ["data", "situacao", "vacina", "dose"]:
             self.assertIn(campo, response.data[0])
-        self.assertEqual(self.client.get("/api/usuarios/999/agendas/").status_code, 404)
 
     def test_excluir_usuario_apaga_agendas_e_preserva_vacina_e_alergia(self):
         alergia = Alergia.objects.create(nome="Ovo")
@@ -217,3 +216,21 @@ class VacinacaoAPITests(APITestCase):
         self.assertEqual(response["Access-Control-Allow-Origin"], "http://localhost:5173")
         response = self.client.get("/api/vacinas/", HTTP_ORIGIN="https://outra-origem.example")
         self.assertNotIn("Access-Control-Allow-Origin", response)
+
+    def test_consulta_do_dia_nao_permite_criacao(self):
+        response = self.client.post("/api/agendas/hoje/", self.dados, format="json")
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(Agenda.objects.exists())
+
+    def test_rota_de_baixa_exige_post_e_agenda_existente(self):
+        agenda_id = self.agendar().data[0]["id"]
+        url = f"/api/agendas/{agenda_id}/baixa/"
+        self.assertEqual(self.client.get(url).status_code, 405)
+        response = self.client.post("/api/agendas/999/baixa/", {"situacao": "Realizado"}, format="json")
+        self.assertEqual(response.status_code, 404)
+
+    def test_consultas_e_exclusoes_inexistentes_retornam_404(self):
+        for url in ["/api/agendas/999/", "/api/vacinas/999/", "/api/usuarios/999/", "/api/alergias/999/"]:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 404)
+                self.assertEqual(self.client.delete(url).status_code, 404)

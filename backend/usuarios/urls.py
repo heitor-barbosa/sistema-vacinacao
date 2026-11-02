@@ -1,8 +1,15 @@
-from rest_framework.routers import SimpleRouter
+from django.urls import path
 
-from .views import AlergiaViewSet, UsuarioViewSet
+from .views import (
+    AlergiaDetailAPIView,
+    AlergiaListCreateAPIView,
+    UsuarioDetailAPIView,
+    UsuarioListCreateAPIView,
+)
 
-router = SimpleRouter()
-router.register("alergias", AlergiaViewSet)
-router.register("usuarios", UsuarioViewSet)
-urlpatterns = router.urls
+urlpatterns = [
+    path("alergias/", AlergiaListCreateAPIView.as_view(), name="alergia-list"),
+    path("alergias/<int:pk>/", AlergiaDetailAPIView.as_view(), name="alergia-detail"),
+    path("usuarios/", UsuarioListCreateAPIView.as_view(), name="usuario-list"),
+    path("usuarios/<int:pk>/", UsuarioDetailAPIView.as_view(), name="usuario-detail"),
+]
