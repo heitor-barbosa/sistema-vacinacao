@@ -20,10 +20,18 @@ Consulte o [MER em imagem](docs/mer-vacinacao.png) e o [anexo original em PDF](d
 
 - Escreva o código mais simples possível para atender corretamente ao requisito.
 - Priorize clareza, nomes compreensíveis, funções curtas e organização fácil de explicar em uma apresentação acadêmica.
+- Divida expressões longas em etapas com variáveis claras. Para consultas compartilhadas entre views, prefira funções simples de consulta.
 - Evite implementações complexas, abstrações genéricas, camadas extras e padrões de projeto sem necessidade concreta.
 - Não crie soluções para necessidades futuras ou hipotéticas.
 - Reutilize as tecnologias e os padrões já adotados no repositório. Adicione dependências somente quando forem necessárias para a tarefa.
 - Mantenha as validações e o tratamento de erros necessários à correção dos dados e às regras do projeto; simplicidade não significa omitir requisitos.
+
+## Views e URLs da API
+
+- Use views genéricas do Django REST Framework (`generics`); não use ViewSets.
+- Declare cada rota explicitamente com `path()` nos arquivos `urls.py`; não use routers.
+- Mantenha a montagem dos querysets e a aplicação dos filtros da requisição em `views.py`. Funções simples nesse arquivo podem ser compartilhadas entre views.
+- Mantenha os services para as regras de negócio que precisem de lógica própria, sem criar camadas extras para operações simples.
 
 ## Verificação e documentação
 
@@ -33,6 +41,7 @@ Consulte o [MER em imagem](docs/mer-vacinacao.png) e o [anexo original em PDF](d
 
 ## Commits e pull requests
 
+- Faça commits, push ou atualizações de PR somente quando o responsável solicitar explicitamente para a tarefa em andamento. Caso contrário, deixe as alterações locais para revisão.
 - Use sempre Conventional Commits nas mensagens de commit e nos títulos de pull requests.
 - Formato: `tipo(escopo opcional): descrição curta`. Exemplos: `docs: documenta os requisitos do projeto`, `feat(agendas): cria agendamentos das doses` e `fix(agendas): corrige a data da próxima dose`.
 - Escolha um tipo que represente a mudança, como `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci` ou `build`.

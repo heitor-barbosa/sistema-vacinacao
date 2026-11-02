@@ -8,6 +8,12 @@ Há dois apps de domínio: `usuarios` (pacientes e alergias) e `vacinacao` (vaci
 
 Os endpoints permitem inclusão, exclusão e consulta, conforme o CRUD obrigatório do enunciado. PUT e PATCH não estão habilitados; alteração é opcional no trabalho. A baixa é feita por um endpoint específico.
 
+## Organização das views e URLs
+
+As views usam as classes genéricas do DRF: `ListCreateAPIView` para listagem e inclusão, `RetrieveDestroyAPIView` para consulta e exclusão, `ListAPIView` para as agendas do dia e `GenericAPIView` para a baixa. As duas listagens reutilizam a função `get_agendas_queryset` no próprio `vacinacao/views.py`, que valida os filtros, aplica cada filtro em uma etapa e define a ordenação por situação. A view do dia acrescenta o filtro pela data atual.
+
+Cada endpoint é declarado com `path()` nos arquivos `usuarios/urls.py` e `vacinacao/urls.py`, incluídos sob o prefixo `/api/` em `config/urls.py`. Não são utilizados ViewSets nem routers. A geração das doses e a baixa continuam em `vacinacao/services.py`.
+
 ## Pré-requisitos
 
 - Python 3.12 ou superior compatível com o Django 5.2.
@@ -96,7 +102,6 @@ Todas as rotas terminam com `/`. Não há paginação: as listagens retornam tod
 | GET / DELETE | `/api/alergias/{id}/` | Consultar / excluir alergia. |
 | GET / POST | `/api/usuarios/` | Listar / cadastrar paciente. |
 | GET / DELETE | `/api/usuarios/{id}/` | Consultar / excluir paciente e suas agendas. |
-| GET | `/api/usuarios/{id}/agendas/` | Consultar agendas do paciente, em ordem de data e hora. |
 | GET / POST | `/api/vacinas/` | Listar / cadastrar vacina. |
 | GET / DELETE | `/api/vacinas/{id}/` | Consultar / excluir vacina e suas agendas. |
 | GET / POST | `/api/agendas/` | Listar / gerar os agendamentos de todas as doses. |
@@ -248,7 +253,7 @@ Os filtros podem ser combinados. Valores de situação são sensíveis a maiúsc
 
 As listagens gerais e do dia exibem primeiro Agendado, depois Realizado e depois Cancelado; dentro de cada situação, ordenam por data, hora e ID. A rota do dia usa a data atual no fuso `America/Sao_Paulo`.
 
-A consulta por paciente, `/api/usuarios/{id}/agendas/`, usa ordem cronológica e a mesma representação completa, com data, situação, vacina e dose, para facilitar a apresentação no frontend.
+A consulta por paciente é feita pelo filtro `/api/agendas/?usuario={id}`, com a mesma ordenação da listagem geral. A resposta inclui data, situação, vacina e dose, atendendo ao Item 6. Um paciente sem agendas ou um ID de paciente inexistente retorna uma lista vazia.
 
 ### Baixa
 

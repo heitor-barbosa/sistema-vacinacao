@@ -31,6 +31,7 @@ As versões exatas das dependências do backend estão em `backend/requirements.
 - **Monorepo:** backend, frontend e documentação ficarão no mesmo repositório, facilitando o acompanhamento de mudanças relacionadas.
 - **Pastas separadas:** o código Django ficará em `backend/` e o React em `frontend/`. Cada aplicação terá suas próprias dependências e comandos de execução.
 - **Organização simples:** a estrutura de pastas será suficiente, sem ferramentas adicionais de gerenciamento de monorepo.
+- **Views e rotas explícitas:** a API usa views genéricas do DRF e URLs declaradas com `path()`, sem ViewSets nem routers.
 - **Regras no backend:** geração das doses, cálculo das datas, validações e mudanças de situação das agendas serão tratados no backend. O React consumirá a API e apresentará os dados.
 - **Situação como enumeração:** serão utilizados os recursos de enumeração do Django, como `TextChoices`, para representar Agendado, Realizado e Cancelado, adaptando à stack Python o requisito de ENUM citado para Java.
 - **Fidelidade ao enunciado:** a implementação seguirá os requisitos e o MER fornecidos. Adequações no modelo serão justificadas e documentadas.
