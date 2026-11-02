@@ -1,0 +1,71 @@
+* { box-sizing: border-box; }
+:root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #243640; background: #f4f6f7; font-synthesis: none; line-height: 1.5; }
+body { margin: 0; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; border: 1px solid #b8c5cd; border-radius: 5px; padding: .5rem .85rem; background: #fff; color: #243640; }
+button:hover:not(:disabled) { background: #edf3f4; }
+button:disabled { cursor: wait; opacity: .6; }
+button.primario { background: #12685d; border-color: #12685d; color: #fff; }
+button.primario:hover:not(:disabled) { background: #0c5148; }
+button.perigo { color: #9c2b28; border-color: #d8b9b8; }
+:focus-visible { outline: 3px solid #167cba; outline-offset: 3px; }
+.topo { background: #203e4b; color: #fff; }
+.topo-conteudo { max-width: 1160px; margin: auto; padding: 1.2rem 1.5rem 0; }
+.marca { font-size: 1.2rem; font-weight: 650; }
+nav { display: flex; gap: .4rem; margin-top: 1.1rem; flex-wrap: wrap; }
+nav button { color: #e1ebef; background: transparent; border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: .7rem 1rem; }
+nav button:hover:not(:disabled) { background: #2c4d5c; }
+nav button[aria-current="page"] { color: #fff; border-bottom-color: #8bd4c5; background: #2c4d5c; }
+main { max-width: 1160px; margin: auto; padding: 1.8rem 1.5rem 3rem; }
+.cabecalho-pagina, .cabecalho-painel { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+h1 { font-size: 1.65rem; margin: 0; color: #203e4b; }
+h2 { font-size: 1.15rem; margin: 0; }
+p { margin: .5rem 0; }
+.subtitulo { color: #566b76; margin: .35rem 0 1.5rem; }
+.painel, .tabela-container { background: #fff; border: 1px solid #dce3e6; border-radius: 7px; margin: 1.25rem 0; }
+.painel { padding: 1.25rem; }
+.cabecalho-painel { margin-bottom: 1rem; }
+.formulario, .filtros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+label { display: flex; flex-direction: column; gap: .3rem; font-weight: 550; font-size: .95rem; }
+input, select, textarea { width: 100%; min-width: 0; border: 1px solid #aebdc5; border-radius: 4px; padding: .55rem .65rem; color: #243640; background: #fff; }
+textarea { min-height: 80px; resize: vertical; }
+.campo-inteiro { grid-column: 1 / -1; }
+.acoes-formulario { display: flex; gap: .6rem; grid-column: 1 / -1; margin-top: .4rem; }
+fieldset { margin: 0; padding: .8rem 1rem; border: 1px solid #cbd6dc; border-radius: 4px; }
+legend { font-weight: 550; }
+.checkboxes { display: flex; gap: .6rem 1.5rem; flex-wrap: wrap; }
+.checkboxes label { flex-direction: row; align-items: center; font-weight: 400; }
+.checkboxes input { width: auto; }
+.tabela-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: .92rem; }
+caption { text-align: left; padding: 1rem; font-weight: 600; }
+th { background: #edf2f4; font-weight: 600; color: #3d5664; }
+th, td { padding: .85rem 1rem; border-bottom: 1px solid #e3e9ec; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.acoes { display: flex; gap: .4rem; flex-wrap: wrap; }
+.acoes button { padding: .3rem .55rem; font-size: .85rem; }
+.vazio { padding: 1.8rem; text-align: center; color: #566b76; }
+.mensagem { padding: .85rem 1rem; border: 1px solid; border-radius: 5px; margin: 1rem 0; white-space: pre-line; }
+.erro { background: #fff1f0; border-color: #e4b3b0; color: #8b2521; }
+.sucesso { background: #edf8f1; border-color: #acd1ba; color: #225c38; }
+.detalhes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 0; }
+.detalhes div { min-width: 0; }
+dt { font-size: .85rem; color: #586d78; }
+dd { margin: .2rem 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.filtros { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+.filtros-acoes { display: flex; gap: .5rem; grid-column: 1 / -1; }
+.situacao { display: inline-block; padding: .15rem .5rem; border-radius: 4px; font-size: .85rem; white-space: nowrap; }
+.situacao.agendado { background: #eaf1fa; color: #225d8f; }
+.situacao.realizado { background: #e8f5ec; color: #226439; }
+.situacao.cancelado { background: #f5eded; color: #8c3c38; }
+.ajuda { color: #566b76; font-size: .9rem; font-weight: 400; }
+@media (max-width: 680px) {
+  main { padding: 1.2rem .85rem 2rem; }
+  .topo-conteudo { padding: 1rem .85rem 0; }
+  nav { gap: 0; }
+  nav button { padding: .65rem .7rem; }
+  .formulario, .filtros, .detalhes { grid-template-columns: 1fr; }
+  .painel { padding: 1rem; }
+  th, td { padding: .75rem; }
+  .cabecalho-pagina { align-items: flex-start; }
+}
