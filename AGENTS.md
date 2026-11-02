@@ -4,7 +4,7 @@
 
 Antes de implementar qualquer coisa, leia integralmente [as instruções do projeto](docs/instrucoes-projeto.md). Essa leitura também é obrigatória antes de alterar código, dependências, configurações ou a estrutura do banco de dados.
 
-Consulte o [MER em imagem](docs/mer-vacinacao.png) e o [anexo original em PDF](docs/ProjetoVacinas2023.png.pdf) antes de definir ou alterar o modelo de dados. Se o anexo não estiver disponível, solicite-o ao responsável; não invente o modelo.
+Consulte o [MER em imagem](docs/mer-vacinacao.png) antes de definir ou alterar o modelo de dados. Se a imagem não estiver disponível, solicite-a ao responsável; não invente o modelo.
 
 ## Respeito ao escopo
 

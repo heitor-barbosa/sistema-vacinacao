@@ -8,7 +8,6 @@ Projeto acadêmico desenvolvido para as disciplinas de Software para Persistênc
 
 - [Enunciado completo e regras do projeto](docs/instrucoes-projeto.md)
 - [Modelo de entidade e relacionamento (MER)](docs/mer-vacinacao.png)
-- [Anexo original do MER em PDF](docs/ProjetoVacinas2023.png.pdf)
 - [Instalação, configuração e contrato da API](docs/backend.md)
 - [Instalação e uso do frontend](docs/frontend.md)
 - [Modelo de dados e adequações ao MER](docs/modelo-dados.md)

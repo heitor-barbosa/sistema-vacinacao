@@ -1,6 +1,6 @@
 # Modelo de dados e adequações ao MER
 
-O ponto de partida é o [MER original](mer-vacinacao.png), também disponível em [PDF](ProjetoVacinas2023.png.pdf). As decisões abaixo registram como ele foi representado no Django e complementado para atender aos itens 1 a 6.
+O ponto de partida é o [MER em PNG](mer-vacinacao.png). As decisões abaixo registram como ele foi representado no Django e complementado para atender aos itens 1 a 6.
 
 ## Organização
 

@@ -8,7 +8,7 @@ Este projeto reúne atividades de três matérias:
 - Manutenção de Software;
 - Implantação e Entrega de Software.
 
-O enunciado abaixo foi transcrito da mensagem fornecida pelo responsável pelo projeto, preservando seus requisitos. O MER mencionado no enunciado está no [anexo original em PDF](ProjetoVacinas2023.png.pdf) e está reproduzido como imagem ao final deste documento. Consulte o anexo antes de definir ou alterar o modelo de dados. Se ele não estiver disponível, solicite-o ao responsável, sem inventar sua estrutura.
+O enunciado abaixo foi transcrito da mensagem fornecida pelo responsável pelo projeto, preservando seus requisitos. O MER mencionado no enunciado está disponível em [imagem PNG](mer-vacinacao.png) e está reproduzido ao final deste documento. Consulte a imagem antes de definir ou alterar o modelo de dados. Se ela não estiver disponível, solicite-a ao responsável, sem inventar sua estrutura.
 
 ## Sobre o projeto
 
@@ -108,4 +108,4 @@ Para o projeto, considere o banco de dados "vacinacao" representado no modelo de
 
 ![Modelo de entidade e relacionamento do banco vacinacao](mer-vacinacao.png)
 
-Fonte: [anexo original fornecido pelo professor](ProjetoVacinas2023.png.pdf).
+Fonte: modelo fornecido pelo professor.
