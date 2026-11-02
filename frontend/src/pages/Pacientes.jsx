@@ -1,3 +1,4 @@
+import Confirmacao from '../components/Confirmacao.jsx';
 import { useEffect, useState } from 'react';
 import { requisicao } from '../api.js';
 import { dataHoje, formatarData, UFS } from '../utils.js';
@@ -8,6 +9,7 @@ export default function Pacientes({ verAgendas }) {
   const [pacientes, setPacientes] = useState([]);
   const [alergias, setAlergias] = useState([]);
   const [novo, setNovo] = useState(false);
+  const [exclusao, setExclusao] = useState(null);
   const [detalhes, setDetalhes] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
@@ -60,16 +62,17 @@ export default function Pacientes({ verAgendas }) {
   }
 
   async function excluir(paciente) {
-    if (!window.confirm(`Excluir o paciente "${paciente.nome}"? Todas as agendas vinculadas também serão excluídas.`)) return;
     setErro('');
     setSucesso('');
     setOcupado(true);
     try {
       await requisicao(`/usuarios/${paciente.id}/`, { method: 'DELETE' });
       if (detalhes?.id === paciente.id) setDetalhes(null);
+      setExclusao(null);
       setSucesso('Paciente excluído.');
       setAtualizacao((valor) => valor + 1);
     } catch (e) {
+      setExclusao(null);
       setErro(e.message);
     } finally {
       setOcupado(false);
@@ -78,6 +81,10 @@ export default function Pacientes({ verAgendas }) {
 
   return (
     <>
+      {exclusao && <Confirmacao
+        mensagem={`Excluir o paciente "${exclusao.nome}"? Todas as agendas vinculadas também serão excluídas.`}
+        confirmar={() => excluir(exclusao)} cancelar={() => setExclusao(null)} ocupado={ocupado}
+      />}
       <div className="cabecalho-pagina">
         <h1>Pacientes</h1>
         <button className="primario" onClick={() => { setNovo(true); setDetalhes(null); }} disabled={ocupado || carregando}>Novo paciente</button>
@@ -130,7 +137,7 @@ export default function Pacientes({ verAgendas }) {
               <td><div className="acoes">
                 <button onClick={() => { setDetalhes(paciente); setNovo(false); }}>Consultar</button>
                 <button onClick={() => verAgendas(paciente.id)}>Ver agendamentos</button>
-                <button className="perigo" onClick={() => excluir(paciente)} disabled={ocupado}>Excluir</button>
+                <button className="perigo" onClick={() => setExclusao(paciente)} disabled={ocupado}>Excluir</button>
               </div></td>
             </tr>)}
             {!pacientes.length && <tr><td colSpan={5} className="vazio">Nenhum paciente cadastrado.</td></tr>}

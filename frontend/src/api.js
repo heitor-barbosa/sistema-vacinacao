@@ -18,7 +18,10 @@ export async function requisicao(caminho, { method = 'GET', dados, signal } = {}
   }
 
   if (resposta.status === 204) return null;
-  const conteudo = await resposta.json().catch(() => null);
+  const conteudo = await resposta.json().catch((erro) => {
+    if (erro.name === 'AbortError') throw erro;
+    return null;
+  });
 
   if (!resposta.ok) {
     if (conteudo && typeof conteudo === 'object') {

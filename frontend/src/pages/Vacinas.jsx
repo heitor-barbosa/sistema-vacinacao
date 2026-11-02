@@ -1,3 +1,4 @@
+import Confirmacao from '../components/Confirmacao.jsx';
 import { useEffect, useState } from 'react';
 import { requisicao } from '../api.js';
 import { PERIODICIDADES } from '../utils.js';
@@ -7,6 +8,7 @@ import Mensagens from '../components/Mensagens.jsx';
 export default function Vacinas() {
   const [vacinas, setVacinas] = useState([]);
   const [novo, setNovo] = useState(false);
+  const [exclusao, setExclusao] = useState(null);
   const [doses, setDoses] = useState(1);
   const [detalhes, setDetalhes] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -52,16 +54,17 @@ export default function Vacinas() {
   }
 
   async function excluir(vacina) {
-    if (!window.confirm(`Excluir a vacina "${vacina.titulo}"? Todas as agendas vinculadas também serão excluídas.`)) return;
     setErro('');
     setSucesso('');
     setOcupado(true);
     try {
       await requisicao(`/vacinas/${vacina.id}/`, { method: 'DELETE' });
       if (detalhes?.id === vacina.id) setDetalhes(null);
+      setExclusao(null);
       setSucesso('Vacina excluída.');
       setAtualizacao((valor) => valor + 1);
     } catch (e) {
+      setExclusao(null);
       setErro(e.message);
     } finally {
       setOcupado(false);
@@ -70,6 +73,10 @@ export default function Vacinas() {
 
   return (
     <>
+      {exclusao && <Confirmacao
+        mensagem={`Excluir a vacina "${exclusao.titulo}"? Todas as agendas vinculadas também serão excluídas.`}
+        confirmar={() => excluir(exclusao)} cancelar={() => setExclusao(null)} ocupado={ocupado}
+      />}
       <div className="cabecalho-pagina">
         <h1>Vacinas</h1>
         <button className="primario" onClick={() => { setNovo(true); setDoses(1); setDetalhes(null); }} disabled={ocupado || carregando}>Nova vacina</button>
@@ -109,7 +116,7 @@ export default function Vacinas() {
               <td>{PERIODICIDADES[vacina.periodicidade] || '—'}</td><td>{vacina.intervalo ?? '—'}</td>
               <td><div className="acoes">
                 <button onClick={() => { setDetalhes(vacina); setNovo(false); }}>Consultar</button>
-                <button className="perigo" onClick={() => excluir(vacina)} disabled={ocupado}>Excluir</button>
+                <button className="perigo" onClick={() => setExclusao(vacina)} disabled={ocupado}>Excluir</button>
               </div></td>
             </tr>)}
             {!vacinas.length && <tr><td colSpan={5} className="vazio">Nenhuma vacina cadastrada.</td></tr>}

@@ -69,3 +69,7 @@ dd { margin: .2rem 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
   th, td { padding: .75rem; }
   .cabecalho-pagina { align-items: flex-start; }
 }
+
+dialog { width: min(480px, calc(100% - 2rem)); padding: 1.5rem; border: 1px solid #b8c5cd; border-radius: 7px; color: #243640; }
+dialog::backdrop { background: rgb(15 35 45 / 45%); }
+dialog p { margin: 1rem 0; }

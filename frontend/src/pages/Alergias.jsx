@@ -1,3 +1,4 @@
+import Confirmacao from '../components/Confirmacao.jsx';
 import { useEffect, useState } from 'react';
 import { requisicao } from '../api.js';
 import Mensagens from '../components/Mensagens.jsx';
@@ -5,6 +6,7 @@ import Mensagens from '../components/Mensagens.jsx';
 export default function Alergias() {
   const [alergias, setAlergias] = useState([]);
   const [novo, setNovo] = useState(false);
+  const [exclusao, setExclusao] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
@@ -41,15 +43,16 @@ export default function Alergias() {
   }
 
   async function excluir(alergia) {
-    if (!window.confirm(`Excluir a alergia "${alergia.nome}"? Ela será removida dos pacientes associados.`)) return;
     setErro('');
     setSucesso('');
     setOcupado(true);
     try {
       await requisicao(`/alergias/${alergia.id}/`, { method: 'DELETE' });
+      setExclusao(null);
       setSucesso('Alergia excluída.');
       setAtualizacao((valor) => valor + 1);
     } catch (e) {
+      setExclusao(null);
       setErro(e.message);
     } finally {
       setOcupado(false);
@@ -58,6 +61,10 @@ export default function Alergias() {
 
   return (
     <>
+      {exclusao && <Confirmacao
+        mensagem={`Excluir a alergia "${exclusao.nome}"? Ela será removida dos pacientes associados.`}
+        confirmar={() => excluir(exclusao)} cancelar={() => setExclusao(null)} ocupado={ocupado}
+      />}
       <div className="cabecalho-pagina">
         <h1>Alergias</h1>
         <button className="primario" onClick={() => setNovo(true)} disabled={ocupado || carregando}>Nova alergia</button>
@@ -81,7 +88,7 @@ export default function Alergias() {
           <tbody>
             {alergias.map((alergia) => <tr key={alergia.id}>
               <td>{alergia.id}</td><td>{alergia.nome}</td>
-              <td><button className="perigo" onClick={() => excluir(alergia)} disabled={ocupado}>Excluir</button></td>
+              <td><button className="perigo" onClick={() => setExclusao(alergia)} disabled={ocupado}>Excluir</button></td>
             </tr>)}
             {!alergias.length && <tr><td colSpan={3} className="vazio">Nenhuma alergia cadastrada.</td></tr>}
           </tbody>

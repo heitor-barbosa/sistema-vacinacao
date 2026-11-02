@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Agendas from './pages/Agendas.jsx';
 import Alergias from './pages/Alergias.jsx';
 import Pacientes from './pages/Pacientes.jsx';
 import Vacinas from './pages/Vacinas.jsx';
@@ -29,7 +30,7 @@ export default function App() {
         </div>
       </header>
       <main>
-        {pagina === 'Agendas' && <><h1>Agendas</h1>{pacienteAgenda && <p>Paciente selecionado: {pacienteAgenda}</p>}</>}
+        {pagina === 'Agendas' && <Agendas key={pacienteAgenda || 'geral'} usuarioInicial={pacienteAgenda} />}
         {pagina === 'Pacientes' && <Pacientes verAgendas={verAgendas} />}
         {pagina === 'Vacinas' && <Vacinas />}
         {pagina === 'Alergias' && <Alergias />}
