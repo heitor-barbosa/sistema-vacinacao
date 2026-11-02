@@ -2,7 +2,7 @@
 
 ## Escopo desta etapa
 
-API dos itens 1 a 6 do [enunciado](instrucoes-projeto.md). O frontend React e a funcionalidade adicional do Item 7 ficam para etapas posteriores.
+API dos itens 1 a 6 do [enunciado](instrucoes-projeto.md). O frontend React está descrito no [manual do frontend](frontend.md). A funcionalidade adicional do Item 7 fica para uma etapa posterior.
 
 Há dois apps de domínio: `usuarios` (pacientes e alergias) e `vacinacao` (vacinas e agendas). Os usuários são pacientes, sem contas de acesso ou autenticação nesta etapa. Não há Django Admin.
 
