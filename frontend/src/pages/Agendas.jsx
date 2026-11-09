@@ -5,12 +5,12 @@ import { dataHoje, formatarData, PERIODICIDADES } from '../utils.js';
 import Detalhes from '../components/Detalhes.jsx';
 import Mensagens from '../components/Mensagens.jsx';
 
-export default function Agendas({ usuarioInicial }) {
+export default function Agendas({ usuarioInicial, dataInicial }) {
   const [agendas, setAgendas] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [vacinas, setVacinas] = useState([]);
   const [filtros, setFiltros] = useState({
-    data: usuarioInicial ? '' : dataHoje(), situacao: '', usuario: usuarioInicial,
+    data: usuarioInicial ? '' : (dataInicial || dataHoje()), situacao: '', usuario: usuarioInicial,
   });
   const [novo, setNovo] = useState(false);
   const [acao, setAcao] = useState(null);

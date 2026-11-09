@@ -16,6 +16,15 @@ export function dataHoje() {
   return `${ano}-${mes}-${dia}`;
 }
 
+// Retorna os dias do mês (0 a 11), com null nas casas antes do primeiro dia da semana.
+export function diasDoCalendario(ano, mes) {
+  const casasVazias = new Date(ano, mes, 1).getDay();
+  const totalDeDias = new Date(ano, mes + 1, 0).getDate();
+  const vazios = Array(casasVazias).fill(null);
+  const dias = Array.from({ length: totalDeDias }, (_, indice) => indice + 1);
+  return [...vazios, ...dias];
+}
+
 export function formatarData(data) {
   return data ? data.split('-').reverse().join('/') : '—';
 }
