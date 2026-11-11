@@ -1,6 +1,6 @@
-# Sistema de Vacinação
+# SIGV — Sistema Inteligente de Gestão da Vacinação
 
-Sistema de agendamento de vacinas com cadastro de pacientes e alergias, geração automática dos agendamentos de cada dose e acompanhamento das aplicações.
+O SIGV é um sistema de agendamento de vacinas com cadastro de pacientes e alergias, geração automática dos agendamentos de cada dose e acompanhamento das aplicações.
 
 Projeto acadêmico desenvolvido para as disciplinas de Software para Persistência de Dados, Manutenção de Software e Implantação e Entrega de Software.
 

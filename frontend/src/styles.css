@@ -11,12 +11,17 @@ button.perigo { color: #9c2b28; border-color: #d8b9b8; }
 :focus-visible { outline: 3px solid #167cba; outline-offset: 3px; }
 .aplicacao { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: 100vh; }
 .menu-lateral { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 1.4rem 1rem; background: #203e4b; color: #fff; }
-.marca { font-size: 1.2rem; font-weight: 650; padding: 0 .6rem; }
+.marca { display: flex; align-items: center; gap: .7rem; padding: 0 .6rem; }
+.marca-logo { flex-shrink: 0; width: 44px; height: 44px; }
+.marca-nome { display: block; font-size: 1.35rem; font-weight: 700; letter-spacing: .08em; line-height: 1.1; }
+.marca-descricao { display: block; margin-top: .15rem; color: #a9c0ca; font-size: .72rem; line-height: 1.3; }
 nav { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 1.6rem; }
 .menu-grupo { display: flex; flex-direction: column; gap: .15rem; }
 .menu-grupo-nome { margin: 0 0 .25rem; padding: 0 .6rem; color: #a9c0ca; font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
-nav button { color: #e1ebef; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 0 5px 5px 0; padding: .55rem .6rem; text-align: left; }
+nav button { display: flex; align-items: center; gap: .65rem; color: #e1ebef; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 0 5px 5px 0; padding: .55rem .6rem; text-align: left; }
 nav button:hover:not(:disabled) { background: #2c4d5c; }
+.menu-icone { flex-shrink: 0; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+nav button[aria-current="page"] .menu-icone { opacity: 1; color: #8bd4c5; }
 nav button[aria-current="page"] { color: #fff; border-left-color: #8bd4c5; background: #2c4d5c; }
 main { width: 100%; max-width: 1280px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
 .cabecalho-pagina, .cabecalho-painel { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
@@ -108,6 +113,7 @@ dd { margin: .2rem 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
   .aplicacao { grid-template-columns: minmax(0, 1fr); }
   .menu-lateral { position: static; height: auto; padding: 1rem .85rem; }
   .marca { padding: 0; }
+  .marca-logo { width: 36px; height: 36px; }
   nav { flex-direction: row; flex-wrap: wrap; gap: .25rem; margin-top: .6rem; }
   .menu-grupo { flex-direction: row; flex-wrap: wrap; }
   .menu-grupo-nome { display: none; }
