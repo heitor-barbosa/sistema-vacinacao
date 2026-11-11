@@ -104,8 +104,9 @@ O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas)
 - É a tela inicial e mostra o total de agendas de hoje, aguardando aplicação, realizadas e canceladas.
 - O calendário mensal apresenta uma prévia dos agendamentos de cada dia: horário e paciente de até três agendas, com a cor da situação, e a quantidade restante.
 - **‹** e **›** mudam o mês; **Hoje** volta ao mês atual. O dia atual fica destacado, considerando `America/Sao_Paulo`.
-- Ao selecionar um dia, o painel ao lado lista horário, paciente, vacina, dose e situação de cada agenda.
-- **Gerenciar este dia** abre a tela Agendas filtrada pela data, onde ficam as ações de baixa e exclusão.
+- Ao selecionar um dia, o calendário se recolhe em uma versão compacta à esquerda e abre a visão do dia, organizada por horário, a pedido do responsável pelo projeto. Ela mostra as faixas das 7h às 18h e inclui outras horas quando há agendas fora desse período. No dia atual, a hora corrente fica destacada.
+- Cada agenda aparece na faixa da sua hora, com horário, paciente, vacina, dose, situação, data da situação e observações. As agendas com situação Agendado têm os botões **Realizar** e **Cancelar agenda**, que dão baixa após uma confirmação.
+- Na visão do dia, **‹** e **›** mudam o dia, **Voltar ao mês** retorna ao calendário completo e **Gerenciar este dia** abre a tela Agendas filtrada pela data, onde também fica a exclusão.
 - Os dados vêm de `GET /api/agendas/`; o backend não foi alterado.
 
 ### Agendas
