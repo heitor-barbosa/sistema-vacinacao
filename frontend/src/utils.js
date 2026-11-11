@@ -28,3 +28,11 @@ export function diasDoCalendario(ano, mes) {
 export function formatarData(data) {
   return data ? data.split('-').reverse().join('/') : '—';
 }
+
+// Hora atual (0 a 23) no fuso usado pelo sistema.
+export function horaAtual() {
+  const texto = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', hourCycle: 'h23',
+  }).format(new Date());
+  return Number(texto);
+}

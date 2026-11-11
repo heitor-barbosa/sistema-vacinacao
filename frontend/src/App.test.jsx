@@ -229,7 +229,7 @@ describe('telas essenciais', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('mostra a prévia do dia no calendário e abre as agendas desse dia', async () => {
+  it('abre a visão do dia por horário, dá baixa e abre as agendas desse dia', async () => {
     const user = userEvent.setup();
     const hoje = dataHoje();
     const dia = Number(hoje.split('-')[2]);
@@ -238,25 +238,43 @@ describe('telas essenciais', () => {
       data: hoje, dose: 1, observacoes: '',
     };
     agendas = [
-      { ...base, id: 1, hora: '09:30:00', situacao: 'Agendado', data_situacao: null },
-      { ...base, id: 2, hora: '10:00:00', situacao: 'Realizado', data_situacao: hoje },
+      { ...base, id: 1, hora: '09:30:00', situacao: 'Agendado', data_situacao: null, observacoes: 'Trazer cartão' },
+      { ...base, id: 2, hora: '21:00:00', situacao: 'Realizado', data_situacao: hoje },
     ];
     render(<App />);
     const calendario = await screen.findByRole('region', { name: 'Calendário de agendamentos' });
     expect(requisicao).toHaveBeenCalledWith('/agendas/', expect.any(Object));
+    expect(screen.queryByRole('region', { name: 'Agendamentos do dia' })).toBeNull();
     const celula = within(calendario).getByRole('button', { name: new RegExp(`^${dia} de .*: 2 agendamento`) });
     expect(celula.getAttribute('aria-current')).toBe('date');
     expect(screen.getByRole('region', { name: 'Resumo das agendas' }).textContent).toContain('2Agendas de hoje');
 
-    const previa = screen.getByRole('region', { name: 'Prévia do dia' });
-    expect(previa.textContent).toContain('09:30 · Maria');
-    expect(previa.textContent).toContain('Vacina mensal · dose 1');
+    await user.click(celula);
+    expect(calendario.className).toContain('compacto');
+    const visaoDoDia = screen.getByRole('region', { name: 'Agendamentos do dia' });
+    const faixa09 = within(visaoDoDia).getByRole('listitem', { name: '09:00: 1 agendamento(s)' });
+    expect(faixa09.textContent).toContain('09:30 · Maria');
+    expect(faixa09.textContent).toContain('Vacina mensal · dose 1');
+    expect(faixa09.textContent).toContain('Obs.: Trazer cartão');
+    expect(within(visaoDoDia).getByRole('listitem', { name: '21:00: 1 agendamento(s)' }).textContent).toContain('Realizado em');
+    expect(within(visaoDoDia).getByRole('listitem', { name: '07:00: 0 agendamento(s)' })).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Próximo mês' }));
-    expect(previa.textContent).toContain('Selecione um dia');
+    await user.click(within(faixa09).getByRole('button', { name: 'Realizar' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }));
+    expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Agenda de Maria marcada como Realizado.');
+    expect(requisicao).toHaveBeenCalledWith('/agendas/1/baixa/', { method: 'POST', dados: { situacao: 'Realizado' } });
+    expect(within(faixa09).queryByRole('button', { name: 'Realizar' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Próximo dia' }));
+    expect(visaoDoDia.textContent).toContain('0 agendamento(s)');
     await user.click(screen.getByRole('button', { name: 'Hoje' }));
-    expect(previa.textContent).toContain('09:30 · Maria');
+    expect(visaoDoDia.textContent).toContain('09:30 · Maria');
 
+    await user.click(screen.getByRole('button', { name: 'Voltar ao mês' }));
+    expect(screen.queryByRole('region', { name: 'Agendamentos do dia' })).toBeNull();
+    expect(calendario.className).not.toContain('compacto');
+
+    await user.click(celula);
     await user.click(screen.getByRole('button', { name: 'Gerenciar este dia' }));
     await screen.findByRole('table');
     expect(requisicao).toHaveBeenCalledWith(`/agendas/?data=${hoje}`, expect.any(Object));
