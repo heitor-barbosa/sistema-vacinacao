@@ -11,6 +11,7 @@ Projeto acadêmico desenvolvido para as disciplinas de Software para Persistênc
 - [Instalação, configuração e contrato da API](docs/backend.md)
 - [Instalação e uso do frontend](docs/frontend.md)
 - [Modelo de dados e adequações ao MER](docs/modelo-dados.md)
+- [Planejamento da evolução para o SIGV](docs/planejamento.md)
 - [Orientações para agentes](AGENTS.md)
 
 ## Tecnologias escolhidas
