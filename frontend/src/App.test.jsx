@@ -165,7 +165,7 @@ describe('telas essenciais', () => {
   it('cria as doses, aplica baixa, filtra e exclui somente a agenda escolhida', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByRole('table');
+    await abrirPagina(user, 'Agendas');
     expect(requisicao).toHaveBeenCalledWith(`/agendas/?data=${dataHoje()}`, expect.any(Object));
     await user.click(screen.getByRole('button', { name: 'Novo agendamento', exact: true }));
     const formulario = within(screen.getByRole('region', { name: 'Cadastro de agendamento' }));
@@ -225,7 +225,41 @@ describe('telas essenciais', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Servidor indisponível.');
     requisicao.mockImplementation(apiSimulada);
     await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
-    await screen.findByRole('table');
+    await screen.findByRole('region', { name: 'Calendário de agendamentos' });
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('mostra a prévia do dia no calendário e abre as agendas desse dia', async () => {
+    const user = userEvent.setup();
+    const hoje = dataHoje();
+    const dia = Number(hoje.split('-')[2]);
+    const base = {
+      usuario: 1, usuario_nome: 'Maria', vacina: 1, vacina_titulo: 'Vacina mensal',
+      data: hoje, dose: 1, observacoes: '',
+    };
+    agendas = [
+      { ...base, id: 1, hora: '09:30:00', situacao: 'Agendado', data_situacao: null },
+      { ...base, id: 2, hora: '10:00:00', situacao: 'Realizado', data_situacao: hoje },
+    ];
+    render(<App />);
+    const calendario = await screen.findByRole('region', { name: 'Calendário de agendamentos' });
+    expect(requisicao).toHaveBeenCalledWith('/agendas/', expect.any(Object));
+    const celula = within(calendario).getByRole('button', { name: new RegExp(`^${dia} de .*: 2 agendamento`) });
+    expect(celula.getAttribute('aria-current')).toBe('date');
+    expect(screen.getByRole('region', { name: 'Resumo das agendas' }).textContent).toContain('2Agendas de hoje');
+
+    const previa = screen.getByRole('region', { name: 'Prévia do dia' });
+    expect(previa.textContent).toContain('09:30 · Maria');
+    expect(previa.textContent).toContain('Vacina mensal · dose 1');
+
+    await user.click(screen.getByRole('button', { name: 'Próximo mês' }));
+    expect(previa.textContent).toContain('Selecione um dia');
+    await user.click(screen.getByRole('button', { name: 'Hoje' }));
+    expect(previa.textContent).toContain('09:30 · Maria');
+
+    await user.click(screen.getByRole('button', { name: 'Gerenciar este dia' }));
+    await screen.findByRole('table');
+    expect(requisicao).toHaveBeenCalledWith(`/agendas/?data=${hoje}`, expect.any(Object));
+    expect(within(screen.getByRole('region', { name: 'Filtros de agendas' })).getByLabelText('Data').value).toBe(hoje);
   });
 });
