@@ -1,0 +1,27 @@
+# Modelo processado pela imagem oficial do Nginx na inicialização:
+# ${PORT} e ${API_UPSTREAM} são substituídos pelas variáveis de ambiente.
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Encaminha a API para o backend, mantendo o caminho /api/...
+    location /api/ {
+        proxy_pass ${API_UPSTREAM};
+        proxy_ssl_server_name on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Arquivos gerados pelo Vite têm nome com hash e podem ficar em cache.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

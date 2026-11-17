@@ -1,0 +1,53 @@
+# Sistema completo em containers: PostgreSQL, API Django e frontend React servido pelo Nginx.
+# Uso: copie .env.example para .env, preencha os valores e execute `docker compose up -d --build`.
+# Para usar as imagens publicadas no GHCR, defina BACKEND_IMAGE e FRONTEND_IMAGE no .env e
+# execute `docker compose pull` seguido de `docker compose up -d --no-build`.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-vacinacao}
+      POSTGRES_USER: ${DB_USER:-vacinacao}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    image: ${BACKEND_IMAGE:-sistema-vacinacao-backend}
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina DJANGO_SECRET_KEY no arquivo .env}
+      DJANGO_DEBUG: "False"
+      # "backend" é o nome usado pelo Nginx para chegar à API dentro da rede do compose.
+      DJANGO_ALLOWED_HOSTS: backend,${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DB_NAME: ${DB_NAME:-vacinacao}
+      DB_USER: ${DB_USER:-vacinacao}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: "5432"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    image: ${FRONTEND_IMAGE:-sistema-vacinacao-frontend}
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: http://backend:8000
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  dados-postgres:
