@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -211,6 +212,7 @@ class VacinacaoAPITests(APITestCase):
         response = self.client.patch(f"/api/vacinas/{self.vacina.pk}/", {"doses": 2}, format="json")
         self.assertEqual(response.status_code, 405)
 
+    @override_settings(CORS_ALLOWED_ORIGINS=["http://localhost:5173"])
     def test_cors_permite_apenas_origem_configurada(self):
         response = self.client.get("/api/vacinas/", HTTP_ORIGIN="http://localhost:5173")
         self.assertEqual(response["Access-Control-Allow-Origin"], "http://localhost:5173")
