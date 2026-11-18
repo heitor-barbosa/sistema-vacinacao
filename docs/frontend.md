@@ -2,9 +2,11 @@
 
 ## Escopo
 
-Interface React para os itens 1 a 6 do [enunciado](instrucoes-projeto.md). São apenas quatro telas: Agendas, Pacientes, Vacinas e Alergias. Cada cadastro reúne listagem, inclusão, consulta dos dados completos e exclusão na própria tela.
+Interface React para os itens 1 a 6 do [enunciado](instrucoes-projeto.md). As telas Agendas, Pacientes, Vacinas e Alergias atendem a esses itens. Cada cadastro reúne listagem, inclusão, consulta dos dados completos e exclusão na própria tela.
 
-A aplicação não inclui login, dashboard, edição ou a funcionalidade adicional do Item 7, conforme as decisões do projeto.
+A página **Início**, com resumo e calendário, e o menu lateral foram solicitados pelo responsável pelo projeto. Não fazem parte do enunciado original nem substituem a funcionalidade adicional do Item 7.
+
+A aplicação não inclui login, edição ou a funcionalidade adicional do Item 7, conforme as decisões do projeto.
 
 ## Tecnologias e organização
 
@@ -32,6 +34,7 @@ frontend/
     │   ├── Detalhes.jsx
     │   └── Mensagens.jsx
     └── pages/
+        ├── Inicio.jsx
         ├── Agendas.jsx
         ├── Pacientes.jsx
         ├── Vacinas.jsx
@@ -92,11 +95,23 @@ npm run dev
 
 Abra `http://127.0.0.1:5173/`. A porta é fixa para corresponder à configuração de CORS; se estiver ocupada, o comando informa o erro em vez de escolher outra porta silenciosamente.
 
-## As quatro telas
+## As telas
+
+O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas) e Cadastros (Pacientes, Vacinas e Alergias). Em telas estreitas, ele passa para o topo da página.
+
+### Início
+
+- É a tela inicial e mostra o total de agendas de hoje, aguardando aplicação, realizadas e canceladas.
+- O calendário mensal apresenta uma prévia dos agendamentos de cada dia: horário e paciente de até três agendas, com a cor da situação, e a quantidade restante.
+- **‹** e **›** mudam o mês; **Hoje** volta ao mês atual. O dia atual fica destacado, considerando `America/Sao_Paulo`.
+- Ao selecionar um dia, o calendário se recolhe em uma versão compacta à esquerda e abre a visão do dia, organizada por horário, a pedido do responsável pelo projeto. Ela mostra as faixas das 7h às 18h e inclui outras horas quando há agendas fora desse período. No dia atual, a hora corrente fica destacada.
+- Cada agenda aparece na faixa da sua hora, com horário, paciente, vacina, dose, situação, data da situação e observações. As agendas com situação Agendado têm os botões **Realizar** e **Cancelar agenda**, que dão baixa após uma confirmação.
+- Na visão do dia, **‹** e **›** mudam o dia, **Voltar ao mês** retorna ao calendário completo e **Gerenciar este dia** abre a tela Agendas filtrada pela data, onde também fica a exclusão.
+- Os dados vêm de `GET /api/agendas/`; o backend não foi alterado.
 
 ### Agendas
 
-- É a tela inicial e exibe as agendas de hoje, considerando `America/Sao_Paulo`.
+- Ao ser aberta pelo menu, exibe as agendas de hoje, considerando `America/Sao_Paulo`.
 - Filtros por data, situação e paciente são aplicados automaticamente quando alterados.
 - **Hoje** aplica a data atual, preservando os outros filtros. **Limpar filtros** mostra todas as datas, pacientes e situações.
 - A listagem mantém a ordem devolvida pelo backend: Agendado, Realizado e Cancelado, seguida de data e horário dentro de cada situação.
@@ -144,7 +159,7 @@ npm test
 npm run build
 ```
 
-Os 11 testes de frontend usam Vitest e React Testing Library com respostas controladas da API. Eles verificam os cadastros, zero ou várias alergias, consulta por paciente, criação das doses, baixa, filtros, confirmações, exclusão, falhas de conexão e mensagens de validação. Não precisam de banco ou backend em execução e não substituem os testes das regras de negócio do Django.
+Os 14 testes de frontend usam Vitest e React Testing Library com respostas controladas da API. Eles verificam os cadastros, zero ou várias alergias, consulta por paciente, criação das doses, baixa, filtros, confirmações, exclusão, calendário, falhas de conexão e mensagens de validação. Não precisam de banco ou backend em execução e não substituem os testes das regras de negócio do Django.
 
 O build gera os arquivos em `frontend/dist/`, ignorados pelo Git. Para inspecionar o build localmente:
 

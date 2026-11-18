@@ -1,6 +1,6 @@
-# Sistema de Vacinação
+# SIGV — Sistema Inteligente de Gestão da Vacinação
 
-Sistema de agendamento de vacinas com cadastro de pacientes e alergias, geração automática dos agendamentos de cada dose e acompanhamento das aplicações.
+O SIGV é um sistema de agendamento de vacinas com cadastro de pacientes e alergias, geração automática dos agendamentos de cada dose e acompanhamento das aplicações.
 
 Projeto acadêmico desenvolvido para as disciplinas de Software para Persistência de Dados, Manutenção de Software e Implantação e Entrega de Software.
 
@@ -11,6 +11,7 @@ Projeto acadêmico desenvolvido para as disciplinas de Software para Persistênc
 - [Instalação, configuração e contrato da API](docs/backend.md)
 - [Instalação e uso do frontend](docs/frontend.md)
 - [Modelo de dados e adequações ao MER](docs/modelo-dados.md)
+- [Planejamento da evolução para o SIGV](docs/planejamento.md)
 - [Orientações para agentes](AGENTS.md)
 
 ## Tecnologias escolhidas
@@ -48,7 +49,7 @@ sistema-vacinacao/
 ├── README.md
 ├── docs/
 ├── backend/     # Django + DRF: apps usuarios e vacinacao
-└── frontend/    # React + Vite: Agendas, Pacientes, Vacinas e Alergias
+└── frontend/    # React + Vite: Início, Agendas, Pacientes, Vacinas e Alergias
 ```
 
 ## Funcionalidades da API
@@ -61,7 +62,7 @@ sistema-vacinacao/
 - Baixa de uma agenda como realizada ou cancelada, registrando a data do dia em `data_situacao`.
 - Visualização dos agendamentos de cada paciente com data, situação, vacina e dose.
 
-A API implementa os itens 1 a 6. A funcionalidade adicional do Item 7 foi adiada pelo responsável e será escolhida e documentada em PDF em uma etapa posterior. O frontend oferece as quatro telas essenciais, com cadastro e listagem na mesma tela, sem login ou edição.
+A API implementa os itens 1 a 6. A funcionalidade adicional do Item 7 foi adiada pelo responsável e será escolhida e documentada em PDF em uma etapa posterior. O frontend oferece as quatro telas essenciais, com cadastro e listagem na mesma tela, sem login ou edição. Por solicitação do responsável, também há menu lateral e uma página Início com resumo e calendário de prévia dos agendamentos.
 
 Os detalhes e as regras completas estão no [enunciado](docs/instrucoes-projeto.md).
 
