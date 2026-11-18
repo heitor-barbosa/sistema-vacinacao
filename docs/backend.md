@@ -90,7 +90,13 @@ python -m pip check
 
 Os testes usam exclusivamente SQLite em memória. O Django aplica as migrations nesse banco temporário e o descarta ao terminar. Esses comandos não conectam ao PostgreSQL do `.env` nem criam bancos nele. Não use `config.test_settings` para executar a aplicação real.
 
-A suíte cobre cadastros, alergias dos pacientes, geração das doses em todas as periodicidades, fins de mês, anos bissextos, rollback em falha, filtros, ordenação do dia, baixa e exclusões em cascata. A integração com um PostgreSQL real deverá ser conferida depois que o responsável configurar o banco.
+A suíte cobre cadastros, alergias dos pacientes, geração das doses em todas as periodicidades, fins de mês, anos bissextos, rollback em falha, filtros, ordenação do dia, baixa e exclusões em cascata.
+
+O pipeline de CI executa, além desses comandos, a mesma suíte em um PostgreSQL real (`python manage.py test usuarios vacinacao`, sem `--settings`). Em 17/11/2026, ela foi executada com sucesso em PostgreSQL 16 dentro do container da API.
+
+## Implantação
+
+Na implantação, a API é executada pelo Gunicorn dentro de um container Docker, que aplica as migrations ao iniciar. A imagem é definida em `backend/Dockerfile`. Variáveis, `docker-compose.yml` e o passo a passo do deploy estão no [guia de implantação](implantacao.md). O `runserver` continua sendo usado apenas no desenvolvimento.
 
 ## Endpoints
 
