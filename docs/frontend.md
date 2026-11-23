@@ -19,6 +19,8 @@ A aplicação não inclui login, edição ou a funcionalidade adicional do Item 
 ```text
 frontend/
 ├── .env.example
+├── Dockerfile             # build e publicação com Nginx (implantação)
+├── nginx.conf.template    # Nginx: arquivos do React e encaminhamento de /api
 ├── index.html
 ├── package.json
 ├── package-lock.json
@@ -168,3 +170,7 @@ npm run preview
 ```
 
 O preview usa `http://127.0.0.1:4173/`. Para consumir a API nessa origem, acrescente `http://127.0.0.1:4173` a `CORS_ALLOWED_ORIGINS` do backend e reinicie-o. O preview serve os arquivos compilados; a API Django continua sendo executada separadamente. O endereço da API usado pelo build é definido durante `npm run build`.
+
+## Implantação
+
+Na implantação, o build é gerado dentro da imagem Docker definida em `frontend/Dockerfile` e servido pelo Nginx. Nessa imagem, `VITE_API_URL` vale `/api`: o navegador chama a API no mesmo endereço do frontend, e o Nginx encaminha essas requisições ao backend indicado por `API_UPSTREAM`. Assim, não é preciso configurar CORS. Os detalhes estão no [guia de implantação](implantacao.md).
