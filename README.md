@@ -1,6 +1,6 @@
-# Sistema de Vacinação
+# SIGV — Sistema Inteligente de Gestão da Vacinação
 
-Sistema de agendamento de vacinas com cadastro de pacientes e alergias, geração automática dos agendamentos de cada dose e acompanhamento das aplicações.
+O SIGV é um sistema de agendamento de vacinas com cadastro de pacientes e alergias, geração automática dos agendamentos de cada dose e acompanhamento das aplicações.
 
 Projeto acadêmico desenvolvido para as disciplinas de Software para Persistência de Dados, Manutenção de Software e Implantação e Entrega de Software.
 
@@ -11,6 +11,9 @@ Projeto acadêmico desenvolvido para as disciplinas de Software para Persistênc
 - [Instalação, configuração e contrato da API](docs/backend.md)
 - [Instalação e uso do frontend](docs/frontend.md)
 - [Modelo de dados e adequações ao MER](docs/modelo-dados.md)
+- [Planejamento da evolução para o SIGV](docs/planejamento.md)
+- [Estoque de vacinas e regras de agendamento (proposta)](docs/estoque-e-regras-agendamento.md)
+- [Implantação e CI/CD](docs/implantacao.md)
 - [Orientações para agentes](AGENTS.md)
 
 ## Tecnologias escolhidas
@@ -24,8 +27,12 @@ Projeto acadêmico desenvolvido para as disciplinas de Software para Persistênc
 | PostgreSQL | Banco de dados da aplicação, configurado pelo `.env`. |
 | React + JavaScript | Interface com formulários, listagens e consulta dos agendamentos. |
 | Vite | Servidor de desenvolvimento e build do frontend. |
+| Docker + Docker Compose | Empacotamento de backend, frontend e banco em containers, para executar o sistema da mesma forma em qualquer hospedagem. |
+| Gunicorn | Servidor da API Django na implantação. |
+| Nginx | Publicação do frontend e encaminhamento de `/api` ao backend na implantação. |
+| GitHub Actions | CI/CD: testes, build, publicação das imagens no GitHub Container Registry e deploy. |
 
-As versões exatas das dependências do backend estão em `backend/requirements.txt`. A conexão PostgreSQL é configurada em `backend/.env`, a partir de `.env.example`. As dependências do frontend são registradas em `frontend/package.json` e fixadas no `package-lock.json`. A implantação ainda será definida.
+As versões exatas das dependências do backend estão em `backend/requirements.txt`. A conexão PostgreSQL é configurada em `backend/.env`, a partir de `.env.example`. As dependências do frontend são registradas em `frontend/package.json` e fixadas no `package-lock.json`. O sistema será hospedado depois de pronto; a implantação e o CI/CD já estão preparados para qualquer hospedagem com Docker, conforme o [guia de implantação](docs/implantacao.md).
 
 ## Decisões do projeto
 
@@ -43,12 +50,15 @@ As versões exatas das dependências do backend estão em `backend/requirements.
 ```text
 sistema-vacinacao/
 ├── .github/
-│   └── pull_request_template.md
+│   ├── pull_request_template.md
+│   └── workflows/ci-cd.yml   # pipeline de CI/CD
+├── .env.example              # variáveis do docker-compose
 ├── AGENTS.md
 ├── README.md
+├── docker-compose.yml        # banco, backend e frontend em containers
 ├── docs/
-├── backend/     # Django + DRF: apps usuarios e vacinacao
-└── frontend/    # React + Vite: Agendas, Pacientes, Vacinas e Alergias
+├── backend/     # Django + DRF: apps usuarios e vacinacao; Dockerfile da API
+└── frontend/    # React + Vite: Início, Agendas, Pacientes, Vacinas e Alergias; Dockerfile com Nginx
 ```
 
 ## Funcionalidades da API
@@ -61,7 +71,9 @@ sistema-vacinacao/
 - Baixa de uma agenda como realizada ou cancelada, registrando a data do dia em `data_situacao`.
 - Visualização dos agendamentos de cada paciente com data, situação, vacina e dose.
 
-A API implementa os itens 1 a 6. A funcionalidade adicional do Item 7 foi adiada pelo responsável e será escolhida e documentada em PDF em uma etapa posterior. O frontend oferece as quatro telas essenciais, com cadastro e listagem na mesma tela, sem login ou edição.
+A API implementa os itens 1 a 6. O professor sugeriu um estoque de vacinas, que recusa o agendamento quando não há a vacina disponível, e uma regra de reaplicação, informada no cadastro de cada vacina: prazo mínimo para tomá-la novamente ou uma única vez na vida. O responsável complementou a proposta com reserva de estoque no agendamento, escolha automática do lote pela validade e lista de espera para vacinas indisponíveis. A proposta é candidata à funcionalidade adicional do Item 7, está [especificada](docs/estoque-e-regras-agendamento.md), aguarda a confirmação das decisões pendentes e ainda não foi implementada.
+
+**Escopo atual:** por decisão do responsável, o desenvolvimento se limita aos itens 1 a 6 e a essa proposta. As demais funcionalidades do SIGV, listadas no [planejamento](docs/planejamento.md), ficam como referência e não serão iniciadas sem nova decisão. O frontend oferece as quatro telas essenciais, com cadastro e listagem na mesma tela, sem login ou edição. Por solicitação do responsável, também há menu lateral e uma página Início com resumo e calendário de prévia dos agendamentos.
 
 Os detalhes e as regras completas estão no [enunciado](docs/instrucoes-projeto.md).
 
@@ -82,7 +94,7 @@ Para testar sem criar ou acessar bancos PostgreSQL:
 python manage.py test usuarios vacinacao --settings=config.test_settings
 ```
 
-Os testes usam SQLite em memória. A conexão com PostgreSQL real ainda depende da configuração do banco pelo responsável.
+Os testes usam SQLite em memória. O pipeline de CI executa os mesmos testes também em um PostgreSQL real.
 
 ### Frontend
 
@@ -102,6 +114,21 @@ Para verificar o frontend, em `frontend/`:
 npm test
 npm run build
 ```
+
+### Sistema completo com Docker
+
+Para executar banco, API e frontend juntos, como na implantação, na raiz do repositório:
+
+```bash
+cp .env.example .env    # preencha DJANGO_SECRET_KEY e DB_PASSWORD
+docker compose up -d --build
+```
+
+Abra `http://localhost:8080`. Detalhes, variáveis e o passo a passo do deploy estão no [guia de implantação](docs/implantacao.md).
+
+## CI/CD
+
+A cada pull request e push nas branches `main` e `develop`, o GitHub Actions executa os testes do backend (SQLite e PostgreSQL), os testes e o build do frontend e a construção das imagens Docker. Na `main`, também publica as imagens no GitHub Container Registry e aciona o deploy, quando a hospedagem estiver configurada. Veja o [guia de implantação](docs/implantacao.md#2-pipeline-de-cicd).
 
 ## Entregáveis acadêmicos
 
