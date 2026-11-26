@@ -34,20 +34,13 @@ Cada POST de agendamento cria um conjunto completo de doses em uma transação. 
 
 Não foi acrescentado um modelo de esquema vacinal, histórico ou outra entidade adicional. Até esta etapa, não há implantação de funcionalidades fora dos itens 1 a 6.
 
-## Adequações previstas: estoque e intervalo entre aplicações
+## Adequações previstas: estoque
 
-> **Situação:** previstas, ainda não implementadas. Correspondem à sugestão do professor de 17/11/2026, candidata ao Item 7, especificada em [estoque-e-regras-agendamento.md](estoque-e-regras-agendamento.md).
+> **Situação:** previstas, ainda não implementadas. Correspondem à proposta de estoque por lotes confirmada pelo responsável em 23/11/2026, candidata ao Item 7, especificada em [estoque-e-regras-agendamento.md](estoque-e-regras-agendamento.md).
 
-O MER não possui onde registrar a quantidade disponível de cada vacina, a validade dos lotes nem um tempo limite para repetir a aplicação. As adequações abaixo apenas acrescentam estruturas; nenhuma tabela ou campo do MER é removido ou alterado.
+O MER não possui onde registrar a quantidade disponível de cada vacina e a validade dos lotes. As adequações abaixo apenas acrescentam estruturas; nenhuma tabela ou campo do MER é removido ou alterado.
 
 - **Nova tabela `lotes`** (modelo `Lote`, app `vacinacao`): `vacina_id`, `numero`, `fabricante`, `validade` e `quantidade`. É necessária porque a disponibilidade de uma vacina depende da quantidade e da validade de cada lote recebido; um único campo de quantidade na vacina não permitiria descartar as unidades vencidas. Restrições: quantidade maior ou igual a zero e número do lote único por vacina. Excluir uma vacina exclui seus lotes em cascata, mantendo o comportamento já adotado para as agendas. O agendamento não altera a quantidade: cada agenda Agendado apenas reserva uma dose, e as reservas são calculadas pela contagem dessas agendas, sem tabela própria. A quantidade só diminui na baixa Realizado, quando o sistema escolhe o lote válido que vence primeiro.
-- **Nova tabela `lista_espera`** (modelo `ListaEspera`, app `vacinacao`): `usuario_id`, `vacina_id`, `data_entrada` e `situacao` (`Aguardando` ou `Atendido`). Guarda os pacientes que aceitaram esperar por uma vacina indisponível, na ordem de entrada. Uma restrição única condicional impede duas entradas `Aguardando` para o mesmo paciente e a mesma vacina. Excluir um paciente ou uma vacina exclui suas entradas em cascata.
-- **Novos campos em `vacinas` para a regra de reaplicação**, preenchida obrigatoriamente no cadastro por decisão do responsável (17/11/2026):
-  - `reaplicacao`, `varchar(10)` obrigatório com `TextChoices`: `Prazo` (após prazo mínimo) ou `Unica` (uma vez na vida);
-  - `prazo_reaplicacao`, inteiro maior que zero, obrigatório para `Prazo` e nulo para `Unica`;
-  - `periodicidade_reaplicacao`, unidade do prazo com os mesmos códigos de `periodicidade` (1 dias, 2 semanas, 3 meses e 4 anos), obrigatória para `Prazo` e nula para `Unica`.
-
-  Uma restrição no banco garante a coerência entre os três campos. Não foi possível reaproveitar `periodicidade` e `intervalo`, pois eles descrevem o espaço entre as doses de um mesmo esquema e são nulos em vacinas de dose única. As vacinas já cadastradas são dados fictícios, usados apenas para povoar a aplicação. Por isso, a migration atribui a elas o valor provisório `Unica`, que não exige prazo, e elas podem ser excluídas ou recadastradas (decisão D21 do [planejamento](planejamento.md#3-decisões-pendentes)).
 - **Novo campo `agendas.lote_id`**, chave estrangeira opcional para `lotes`, preenchida na baixa Realizado. Registra de qual lote saiu a dose aplicada. Usa `RESTRICT`: impede excluir um lote já utilizado, mas permite a exclusão em cascata quando a vacina inteira é excluída. Agendas realizadas antes da funcionalidade ficam com o campo nulo.
 
-A última aplicação de uma vacina, usada na regra de intervalo, é obtida das agendas Realizado e de sua `data_situacao`, sem necessidade de nova tabela de histórico.
+Os campos existentes `doses`, `periodicidade` e `intervalo` continuam definindo a geração das doses. Por decisão do responsável em 23/11/2026, não serão acrescentados campos de reaplicação nem uma tabela de lista de espera; a indisponibilidade apenas impede o agendamento.
