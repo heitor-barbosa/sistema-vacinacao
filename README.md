@@ -70,8 +70,9 @@ sistema-vacinacao/
 - Consulta das agendas do dia, ordenadas por situação: agendadas, realizadas e canceladas.
 - Baixa de uma agenda como realizada ou cancelada, registrando a data do dia em `data_situacao`.
 - Visualização dos agendamentos de cada paciente com data, situação, vacina e dose.
+- Cadastro, consulta, listagem e exclusão de lotes de vacinas, com a classificação da validade.
 
-A API implementa os itens 1 a 6. O estoque de vacinas, ainda não implementado, está [especificado](docs/estoque-e-regras-agendamento.md): controle por lotes e validade, reserva no agendamento e escolha automática do lote na aplicação. Sem estoque disponível, o agendamento é recusado com uma mensagem de indisponibilidade. A proposta permanece candidata à funcionalidade adicional do Item 7, conforme decisão pendente D01.
+A API implementa os itens 1 a 6. O estoque de vacinas está [especificado](docs/estoque-e-regras-agendamento.md) e em implementação: controle por lotes e validade, reserva no agendamento e escolha automática do lote na aplicação. Por enquanto, apenas o cadastro de lotes está disponível. Sem estoque disponível, o agendamento é recusado com uma mensagem de indisponibilidade. A proposta permanece candidata à funcionalidade adicional do Item 7, conforme decisão pendente D01.
 
 **Escopo atual (23/11/2026):** por decisão do responsável, os próximos passos são o estoque por lotes com validade e reservas e a integração com o Telegram para o próprio paciente agendar vacinação. Foram retiradas da proposta a regra adicional de reaplicação e a lista de espera. A geração automática de doses continua usando os campos existentes `doses`, `periodicidade` e `intervalo`. As demais funcionalidades do SIGV, listadas no [planejamento](docs/planejamento.md), ficam como referência e não serão iniciadas sem nova decisão. O frontend oferece as quatro telas essenciais, com cadastro e listagem na mesma tela, sem login ou edição, além de menu lateral e uma página Início com resumo e calendário, solicitados pelo responsável.
 
