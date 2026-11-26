@@ -1,6 +1,13 @@
-from rest_framework import serializers
+from datetime import timedelta
 
-from .models import Agenda, Vacina
+from django.utils import timezone
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+
+from .models import Agenda, Lote, Vacina
+
+# Prazo fixo nesta etapa para classificar um lote como "Vence em breve" (RN20).
+DIAS_VENCE_EM_BREVE = 30
 
 
 class VacinaSerializer(serializers.ModelSerializer):
@@ -17,6 +24,41 @@ class VacinaSerializer(serializers.ModelSerializer):
             if errors:
                 raise serializers.ValidationError(errors)
         return attrs
+
+
+class LoteSerializer(serializers.ModelSerializer):
+    vacina_titulo = serializers.CharField(source="vacina.titulo", read_only=True)
+    situacao_validade = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Lote
+        fields = [
+            "id", "vacina", "vacina_titulo", "numero", "fabricante",
+            "validade", "quantidade", "situacao_validade",
+        ]
+        # Substitui a mensagem genérica do DRF para a restrição de número único por vacina (RN02).
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Lote.objects.all(),
+                fields=["vacina", "numero"],
+                message="Já existe um lote com este número para a vacina.",
+            ),
+        ]
+
+    def get_situacao_validade(self, lote):
+        hoje = timezone.localdate()
+        limite_vence_em_breve = hoje + timedelta(days=DIAS_VENCE_EM_BREVE)
+
+        # O lote pode ser usado até a data de validade, inclusive (RN03).
+        if lote.validade < hoje:
+            return "Vencido"
+        if lote.validade <= limite_vence_em_breve:
+            return "Vence em breve"
+        return "Valido"
+
+
+class LoteFiltroSerializer(serializers.Serializer):
+    vacina = serializers.IntegerField(required=False, min_value=1)
 
 
 class AgendaSerializer(serializers.ModelSerializer):

@@ -34,6 +34,25 @@ class Vacina(models.Model):
         return self.titulo
 
 
+class Lote(models.Model):
+    vacina = models.ForeignKey(Vacina, on_delete=models.CASCADE, related_name="lotes")
+    numero = models.CharField(max_length=30)
+    fabricante = models.CharField(max_length=60)
+    validade = models.DateField()
+    # PositiveIntegerField cria no banco a restrição de quantidade maior ou igual a zero.
+    quantidade = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = "lotes"
+        ordering = ["validade", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["vacina", "numero"], name="lote_numero_unico_por_vacina"),
+        ]
+
+    def __str__(self):
+        return self.numero
+
+
 class Agenda(models.Model):
     class Situacao(models.TextChoices):
         AGENDADO = "Agendado", "Agendado"
@@ -48,6 +67,9 @@ class Agenda(models.Model):
     situacao = models.CharField(max_length=10, choices=Situacao.choices, default=Situacao.AGENDADO)
     data_situacao = models.DateField(null=True, blank=True)
     observacoes = models.CharField(max_length=200, blank=True)
+    # Preenchido na baixa Realizado (issue #13). RESTRICT impede excluir um lote já utilizado,
+    # mas permite a exclusão quando a própria vacina é excluída com suas agendas.
+    lote = models.ForeignKey(Lote, on_delete=models.RESTRICT, null=True, blank=True, related_name="agendas")
 
     class Meta:
         db_table = "agendas"
