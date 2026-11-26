@@ -74,7 +74,7 @@ A especificação completa está em [estoque-e-regras-agendamento.md](estoque-e-
 
 - **RN01–RN03** Controle por lote, com vacina, número, fabricante, validade e quantidade. Só contam lotes válidos na data considerada.
 - **RN04** Cada agenda Agendado reserva uma dose. Estoque disponível = estoque em lotes − doses reservadas. A reserva não altera a quantidade do lote.
-- **RN05** Sem estoque suficiente para as doses do agendamento, nenhuma agenda é criada e o sistema informa a indisponibilidade, conforme D14.
+- **RN05** Sem estoque suficiente para as doses do agendamento, nenhuma agenda é criada e o sistema informa a indisponibilidade, conforme D14 e D24.
 - **RN06** Na baixa Realizado, o sistema escolhe o lote válido que vence primeiro, desconta uma unidade e registra o lote na agenda. A recusa da baixa sem lote válido depende de D19.
 - **RN07–RN08** Cancelar ou excluir uma agenda Agendado libera sua reserva; um lote usado não pode ser excluído.
 - **RN20** A tela Estoque classifica os lotes por validade: válido, vence em breve (30 dias) ou vencido.
@@ -83,7 +83,7 @@ Impacto previsto no banco: tabela `lotes` e campo `agendas.lote_id`. As tabelas 
 
 ## 3. Decisões pendentes
 
-Estas questões não estão definidas no documento do SIGV nem na sugestão do professor e precisam de resposta do responsável antes ou durante as fases indicadas. Não devem ser resolvidas por suposição. As recomendações de estoque para D14, D15, D18 e D19 estão na [especificação do estoque](estoque-e-regras-agendamento.md#7-decisões-e-recomendações).
+Estas questões não estão definidas no documento do SIGV nem na sugestão do professor e precisam de resposta do responsável antes ou durante as fases indicadas. Não devem ser resolvidas por suposição. As recomendações de estoque para D14, D15, D18, D19 e D24 estão na [especificação do estoque](estoque-e-regras-agendamento.md#7-decisões-e-recomendações).
 
 | # | Questão | Afeta |
 | --- | --- | --- |
@@ -104,6 +104,7 @@ Estas questões não estão definidas no documento do SIGV nem na sugestão do p
 | D15 | **Confirmada em 23/11/2026:** o agendamento reserva doses, com estoque por lotes e validade. Sem disponibilidade, apenas informar e recusar o agendamento. | Fase 1 |
 | D18 | ~~Na baixa Realizado, o lote é escolhido pelo sistema (vencimento mais próximo) ou pelo profissional?~~ **Decidida em 17/11/2026:** pelo sistema, escolhendo o lote válido que vence primeiro, o que permite controlar a validade. O estoque só diminui na confirmação da aplicação. | Fase 1 e Fase 7 |
 | D19 | A baixa Realizado pode ser recusada por falta de estoque, alterando o comportamento atual do Item 5? | Fase 1 |
+| D24 | Como considerar a validade dos lotes nas datas futuras das doses: verificar o estoque somente na data da primeira dose ou em cada data de dose? | Fase 1 |
 
 As decisões D16, D17, D20, D21, D22 e D23 foram retiradas em 23/11/2026 por tratarem das funcionalidades removidas. Os demais identificadores foram mantidos para preservar as referências.
 
@@ -113,7 +114,7 @@ As fases estão em ordem de dependência: cada uma usa o que as anteriores criam
 
 ### Fase 0 — Preparação
 
-- [ ] **A01** Obter as respostas das decisões do escopo atual: D01, D02, D10 (bot e identificação do paciente), D13 (hospedagem), D14 e D19.
+- [ ] **A01** Obter as respostas das decisões do escopo atual: D01, D02, D10 (bot e identificação do paciente), D13 (hospedagem), D14, D19 e D24.
 - [x] **A02** Registrar no README e em [modelo-dados.md](modelo-dados.md) as ampliações do escopo, distinguindo-as do enunciado original.
 - [x] **A03** Desenhar o modelo de dados necessário à Fase 1 a partir do MER, sem remover nada dele, e documentar a justificativa de cada adequação em [modelo-dados.md](modelo-dados.md).
 
@@ -197,7 +198,7 @@ Amplia o estoque criado na Fase 1 com as unidades da Fase 4. Vem antes do regist
 
 **Recorte autorizado em 23/11/2026:** criar o bot, vincular a conta ao próprio paciente e permitir escolher vacina, data e horário, confirmar e realizar o agendamento usando a lógica existente e a verificação de estoque. O método de vínculo ainda depende de D10; CPF não é requisito definido para esse recorte. A lista abaixo descreve a ampliação futura do SIGV; atualização cadastral, triagem, recomendações, cancelamento e remarcação pelo bot, protocolo, QR Code e lembretes não entram automaticamente no escopo atual.
 
-- [ ] **A46** Criar o bot do Telegram e o vínculo entre o chat e o paciente, identificado pelo CPF (RF03).
+- [ ] **A46** Criar o bot do Telegram e o vínculo entre o chat e o paciente, conforme D10 (RF03).
 - [ ] **A47** Implementar a atualização cadastral pelo bot (RF02).
 - [ ] **A48** Implementar a triagem pelo bot: sintomas, febre, gravidez, alergias, medicamentos, imunossupressão, doenças recentes, peso e viagens internacionais. As respostas ficam salvas no modelo `Triagem` (RF04).
 - [ ] **A49** Mostrar as recomendações no bot e permitir agendar, cancelar e remarcar, devolvendo o protocolo e o QR Code. A recusa por indisponibilidade de estoque é informada pelo bot com a mesma mensagem da API.

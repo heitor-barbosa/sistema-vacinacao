@@ -26,11 +26,13 @@ O estoque permanece candidato à funcionalidade adicional do **Item 7** do [enun
 | **RN02** | A quantidade de um lote nunca é negativa. O número do lote é único para cada vacina. |
 | **RN03** | Um lote só pode ser usado até a data de validade, inclusive. O **estoque em lotes** de uma vacina em uma data é a soma das quantidades dos seus lotes com validade igual ou posterior a essa data. |
 | **RN04** | Cada agenda com situação Agendado **reserva** uma dose da vacina. O **estoque disponível** é o estoque em lotes menos as doses reservadas. Por exemplo, com 100 doses em lotes e nenhuma reserva, podem ser feitos 100 agendamentos de dose; o 101º é recusado. Se lotes vencerem e o estoque em lotes ficar menor que as reservas, as agendas existentes são mantidas, o estoque disponível é exibido como zero e a falta aparece na baixa (RN06). |
-| **RN05** | Ao agendar, o estoque disponível na data da primeira dose precisa ser suficiente para todas as doses que o agendamento cria (D14). Se não for, nenhuma dose é criada e o sistema informa: *"Vacina indisponível: não há doses suficientes da vacina {vacina} em estoque. O agendamento não foi realizado."* |
+| **RN05** | Ao agendar, o estoque disponível na data da primeira dose precisa ser suficiente para todas as doses que o agendamento cria (D14 e D24). Se não for, nenhuma dose é criada e o sistema informa: *"Vacina indisponível: não há doses suficientes da vacina {vacina} em estoque. O agendamento não foi realizado."* |
 | **RN06** | A reserva não altera a quantidade dos lotes. Somente na baixa como **Realizado**, que confirma a aplicação, o sistema escolhe o lote válido na data atual que vence primeiro, desconta uma unidade e registra esse lote na agenda, na mesma transação (D18). A reserva da agenda vira consumo, e o estoque disponível não muda. A confirmação informa o lote usado: *"Aplicação registrada com o lote {número}, validade {data}."* Sem lote válido com quantidade, a baixa é recusada e a agenda continua como Agendado (D19). |
 | **RN07** | Cancelar ou excluir uma agenda Agendado libera a reserva, e o estoque disponível aumenta em uma dose. Excluir uma agenda realizada não devolve a unidade, pois a vacina já foi aplicada. |
 | **RN08** | Um lote já utilizado em uma aplicação não pode ser excluído. Excluir uma vacina exclui seus lotes, assim como já exclui suas agendas. |
 | **RN20** | **Controle de validade:** como o sistema escolhe o lote, lotes vencidos nunca são usados nem contam no estoque (RN03). A tela Estoque classifica cada lote como **válido**, **vence em breve** (validade nos próximos 30 dias) ou **vencido**, e mostra a quantidade que será perdida nos lotes vencidos. O prazo de 30 dias é fixo nesta etapa; torná-lo configurável e emitir alertas faz parte da ampliação do estoque prevista no planejamento. |
+
+As regras RN09 a RN19 foram retiradas em 23/11/2026, junto com a reaplicação e a lista de espera. A RN20 manteve o identificador para preservar as referências.
 
 ## 3. Ordem das verificações no agendamento
 
@@ -49,7 +51,7 @@ Considere uma vacina de dose única e o lote L1, com validade em 30/11/2026 e um
 | # | Situação | Resultado | Disponível depois |
 | --- | --- | --- | --- |
 | 1 | Maria agenda para 25/11/2026. | Aceito. Uma dose é reservada, sem alterar a quantidade de L1. | 0 |
-| 2 | João tenta agendar para 26/11/2026. | Recusado: vacina indisponível. Nenhuma agenda ou entrada em fila é criada. | 0 |
+| 2 | João tenta agendar para 26/11/2026. | Recusado: vacina indisponível. Nenhuma agenda é criada. | 0 |
 | 3 | Maria cancela a agenda. | A reserva é liberada; L1 continua com uma dose. | 1 |
 | 4 | João faz um novo agendamento para 26/11/2026. | Aceito. Uma dose é reservada. | 0 |
 | 5 | Em 26/11/2026, a agenda de João recebe baixa Realizado. | O sistema usa L1, que passa a zero. A reserva vira consumo. | 0 |
@@ -102,7 +104,7 @@ As validações atuais dos campos continuam retornando HTTP 400. A correção de
 
 ### Telas
 
-- **Agendas — Novo agendamento:** ao escolher a vacina, mostra o estoque disponível. Em caso de indisponibilidade, exibe a mensagem do backend e mantém o formulário aberto, sem oferecer fila ou registrar outra solicitação.
+- **Agendas — Novo agendamento:** ao escolher a vacina, mostra o estoque disponível. Em caso de indisponibilidade, exibe a mensagem do backend e mantém o formulário aberto.
 - **Estoque (nova, no grupo Cadastros do menu):** resumo por vacina com estoque em lotes, doses reservadas e estoque disponível, destacando quando as reservas superam o estoque em lotes; cadastro, consulta e exclusão de lote; listagem em ordem de validade, com número, fabricante, validade, quantidade e classificação (RN20).
 - **Vacinas:** mostra o estoque disponível e mantém o cadastro existente de doses, periodicidade e intervalo.
 - **Agendas e Início — baixa e consulta:** ao confirmar a aplicação, a mensagem informa o lote escolhido e sua validade; a consulta mostra o lote utilizado; eventual recusa por falta de lote válido aparece como mensagem, conforme D19.
@@ -117,6 +119,7 @@ O documento não deve ser implementado com base em suposições. As recomendaç�
 | D15 | O agendamento reserva estoque? | **Decidida em 17/11/2026:** sim. Cada agenda reserva uma dose do estoque disponível. **Confirmada em 23/11/2026:** sem estoque, apenas informar indisponibilidade e recusar o agendamento (RN04, RN05). | — |
 | D18 | Na baixa Realizado, quem escolhe o lote? | **Decidida em 17/11/2026:** o sistema, pelo lote válido que vence primeiro. O estoque só diminui na confirmação da aplicação, e a escolha automática permite ao sistema controlar a validade (RN06, RN20). | — |
 | D19 | A baixa Realizado pode ser recusada por falta de estoque? Isso altera o comportamento atual do Item 5. Com a reserva, só acontece quando lotes vencem. | Sim, para manter o estoque coerente com as aplicações. | Permitir a baixa sem lote, deixando o estoque inconsistente. |
+| D24 | Como considerar a validade dos lotes nas datas futuras das doses? | Verificar o estoque somente na data da primeira dose (RN05). Se os lotes vencerem antes das doses seguintes, as agendas são mantidas e a falta aparece na baixa (RN04, RN06), conforme D19. | Verificar cada dose com os lotes válidos na sua data, o que recusa mais esquemas longos quando os lotes atuais vencem antes das últimas doses. |
 
 ## 8. Testes previstos
 
