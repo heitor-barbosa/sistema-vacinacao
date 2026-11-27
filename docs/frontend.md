@@ -6,7 +6,7 @@ Interface React para os itens 1 a 6 do [enunciado](instrucoes-projeto.md). As te
 
 A página **Início**, com resumo e calendário, e o menu lateral foram solicitados pelo responsável pelo projeto. Não fazem parte do enunciado original nem substituem a funcionalidade adicional do Item 7.
 
-A tela **Estoque** faz parte do controle de estoque por lotes (épico #9, issue #14), ainda em implementação. Por enquanto, ela gerencia os lotes; a disponibilidade por vacina, a recusa por falta de estoque e o lote utilizado na aplicação serão apresentados quando a API oferecer esses dados (issues #12 e #13).
+A tela **Estoque** faz parte do controle de estoque por lotes (épico #9, issue #14), ainda em implementação. Por enquanto, ela gerencia os lotes. A recusa por falta de estoque (#12) já aparece no Novo agendamento como mensagem da API, com o formulário aberto. A disponibilidade por vacina, já informada pela API (#12), e o lote utilizado na aplicação (#13) serão apresentados nas telas pela #14.
 
 A aplicação não inclui login nem edição, conforme as decisões do projeto.
 
@@ -143,7 +143,7 @@ O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas)
 
 ### Estoque
 
-- Cada vacina aparece em um card com o total de doses dos lotes não vencidos, a quantidade de lotes e avisos de lotes que vencem em breve ou estão vencidos. A soma usa a classificação da validade devolvida pela API, sem considerar reservas, que ainda não existem (#12).
+- Cada vacina aparece em um card com o total de doses dos lotes não vencidos, a quantidade de lotes e avisos de lotes que vencem em breve ou estão vencidos. A soma usa a classificação da validade devolvida pela API, sem descontar as reservas. A API já informa `doses_reservadas` e `estoque_disponivel` em cada vacina (#12), que a #14 vai apresentar.
 - Ao clicar no card, abre-se uma tela própria da vacina, separada dos cards, com o total de doses e todos os dados de cada lote: número, fabricante, validade, classificação e quantidade de doses. Os lotes seguem a ordem de validade devolvida pela API, e a classificação é calculada pelo backend: **Válido**, **Vence em breve** (até 30 dias) ou **Vencido** (RN20).
 - **Novo lote** também abre uma tela própria, que solicita vacina, número do lote, fabricante, validade e quantidade de doses. Aberta a partir de uma vacina, ela já vem com essa vacina escolhida. É necessário ter pelo menos uma vacina cadastrada. Depois do cadastro, abre-se a tela da vacina do lote; **Cancelar** volta à tela anterior.
 - **‹ Voltar ao estoque** ou um novo clique em Estoque no menu retornam aos cards.

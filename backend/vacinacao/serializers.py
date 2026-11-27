@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from .models import Agenda, Lote, Vacina
+from .services import calcular_estoque
 
 # Prazo fixo nesta etapa para classificar um lote como "Vence em breve" (RN20).
 DIAS_VENCE_EM_BREVE = 30
@@ -14,6 +15,12 @@ class VacinaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vacina
         fields = ["id", "titulo", "descricao", "doses", "periodicidade", "intervalo"]
+
+    def to_representation(self, vacina):
+        # Acrescenta à resposta, somente para leitura, o estoque calculado para a data atual (A05).
+        dados = super().to_representation(vacina)
+        dados.update(calcular_estoque(vacina, timezone.localdate()))
+        return dados
 
     def validate(self, attrs):
         if attrs["doses"] > 1:

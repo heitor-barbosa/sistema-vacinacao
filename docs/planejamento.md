@@ -100,11 +100,11 @@ Estas questões não estão definidas no documento do SIGV nem na sugestão do p
 | D11 | Como o envio de lembretes será agendado (comando periódico, cron, outro)? | Fase 9 |
 | D12 | Qual técnica de "inteligência artificial" é aceitável para a predição de demanda (média móvel, regressão, outro) e com quais dados históricos? | Fase 11 |
 | D13 | Onde o sistema será hospedado? **Parcialmente decidida em 17/11/2026:** todo o sistema será hospedado depois de pronto. A implantação foi preparada com Docker e CI/CD para funcionar em qualquer hospedagem com Docker; falta escolher a hospedagem ([implantacao.md](implantacao.md)). | Fase 12 |
-| D14 | Em uma vacina de várias doses, o agendamento reserva estoque para todas as doses do esquema ou só para a primeira? | Fase 1 |
+| D14 | ~~Em uma vacina de várias doses, o agendamento reserva estoque para todas as doses do esquema ou só para a primeira?~~ **Decidida em 27/11/2026:** para todas as doses; cada agenda Agendado reserva uma dose. | Fase 1 |
 | D15 | **Confirmada em 23/11/2026:** o agendamento reserva doses, com estoque por lotes e validade. Sem disponibilidade, apenas informar e recusar o agendamento. | Fase 1 |
 | D18 | ~~Na baixa Realizado, o lote é escolhido pelo sistema (vencimento mais próximo) ou pelo profissional?~~ **Decidida em 17/11/2026:** pelo sistema, escolhendo o lote válido que vence primeiro, o que permite controlar a validade. O estoque só diminui na confirmação da aplicação. | Fase 1 e Fase 7 |
 | D19 | A baixa Realizado pode ser recusada por falta de estoque, alterando o comportamento atual do Item 5? | Fase 1 |
-| D24 | Como considerar a validade dos lotes nas datas futuras das doses: verificar o estoque somente na data da primeira dose ou em cada data de dose? | Fase 1 |
+| D24 | ~~Como considerar a validade dos lotes nas datas futuras das doses: verificar o estoque somente na data da primeira dose ou em cada data de dose?~~ **Decidida em 27/11/2026:** somente na data da primeira dose; se os lotes vencerem antes das doses seguintes, a falta aparece na baixa. | Fase 1 |
 
 As decisões D16, D17, D20, D21, D22 e D23 foram retiradas em 23/11/2026 por tratarem das funcionalidades removidas. Os demais identificadores foram mantidos para preservar as referências.
 
@@ -114,7 +114,7 @@ As fases estão em ordem de dependência: cada uma usa o que as anteriores criam
 
 ### Fase 0 — Preparação
 
-- [ ] **A01** Obter as respostas das decisões do escopo atual: D01, D02, D10 (bot e identificação do paciente), D13 (hospedagem), D14, D19 e D24.
+- [ ] **A01** Obter as respostas das decisões do escopo atual: D01, D02, D10 (bot e identificação do paciente), D13 (hospedagem) e D19. D14 e D24 foram decididas em 27/11/2026.
 - [x] **A02** Registrar no README e em [modelo-dados.md](modelo-dados.md) as ampliações do escopo, distinguindo-as do enunciado original.
 - [x] **A03** Desenhar o modelo de dados necessário à Fase 1 a partir do MER, sem remover nada dele, e documentar a justificativa de cada adequação em [modelo-dados.md](modelo-dados.md).
 
@@ -123,10 +123,10 @@ As fases estão em ordem de dependência: cada uma usa o que as anteriores criam
 Vem primeiro porque foi sugerida pelo professor, é candidata ao Item 7 (D01) e não depende de autenticação, unidades ou cadastro completo do paciente. Especificação: [estoque-e-regras-agendamento.md](estoque-e-regras-agendamento.md).
 
 - [x] **A04** Criar o modelo `Lote` (tabela `lotes`) com vacina, número, fabricante, validade e quantidade, com restrição de quantidade não negativa e número único por vacina, e os endpoints de listagem, cadastro, consulta e exclusão (RN01 a RN03, RN08).
-- [ ] **A05** Acrescentar às respostas de vacina os campos somente leitura de estoque em lotes, doses reservadas e estoque disponível (RN03, RN04), mantendo os campos atuais do cadastro.
-- [ ] **A07** No agendamento, calcular o estoque disponível descontando as doses reservadas pelas agendas Agendado e recusar com HTTP 409 ("vacina indisponível") quando ele não cobrir as doses do agendamento, sem criar nenhuma agenda e bloqueando os lotes durante a transação (RN04, RN05), conforme D14.
+- [x] **A05** Acrescentar às respostas de vacina os campos somente leitura de estoque em lotes, doses reservadas e estoque disponível (RN03, RN04), mantendo os campos atuais do cadastro.
+- [x] **A07** No agendamento, calcular o estoque disponível descontando as doses reservadas pelas agendas Agendado e recusar com HTTP 409 ("vacina indisponível") quando ele não cobrir as doses do agendamento, sem criar nenhuma agenda e bloqueando os lotes durante a transação (RN04, RN05), conforme D14.
 - [ ] **A08** Na baixa Realizado, o sistema escolhe o lote válido que vence primeiro, desconta uma unidade e o registra em `Agenda.lote`, na mesma transação, informando o lote na resposta e recusando a baixa sem lote válido (RN06, RN07). Classificar os lotes por validade (RN20), conforme D19.
-- [ ] **A10** Criar a tela Estoque, com cadastro e listagem de lotes classificados por validade e resumo por vacina; mostrar a disponibilidade nas telas Vacinas e Novo agendamento; exibir a mensagem de indisponibilidade sem criar agenda; informar o lote escolhido na confirmação da aplicação e na consulta. **Em andamento (#14):** a tela Estoque já mostra cada vacina em um card com as doses dos seus lotes e permite cadastrar, consultar e excluir lotes com a classificação da validade; o resumo por vacina, a disponibilidade e o lote utilizado dependem de A05, A07 e A08.
+- [ ] **A10** Criar a tela Estoque, com cadastro e listagem de lotes classificados por validade e resumo por vacina; mostrar a disponibilidade nas telas Vacinas e Novo agendamento; exibir a mensagem de indisponibilidade sem criar agenda; informar o lote escolhido na confirmação da aplicação e na consulta. **Em andamento (#14):** a tela Estoque já mostra cada vacina em um card com as doses dos seus lotes e permite cadastrar, consultar e excluir lotes com a classificação da validade; o resumo por vacina e a disponibilidade já podem usar os dados da API (A05 e A07); o lote utilizado depende de A08.
 - [ ] **A11** Escrever os testes previstos na especificação e atualizar [backend.md](backend.md), [frontend.md](frontend.md) e [modelo-dados.md](modelo-dados.md). Se D01 confirmar, redigir o PDF do Item 7 a partir da especificação.
 
 As atividades A06 e A09 foram retiradas em 23/11/2026; a numeração das demais foi preservada.
