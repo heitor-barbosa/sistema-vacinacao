@@ -7,10 +7,11 @@ import Mensagens from '../components/Mensagens.jsx';
 
 export default function Vacinas() {
   const [vacinas, setVacinas] = useState([]);
+  // A página mostra a listagem, o cadastro (novo) ou os dados de uma vacina (detalhes).
   const [novo, setNovo] = useState(false);
+  const [detalhes, setDetalhes] = useState(null);
   const [exclusao, setExclusao] = useState(null);
   const [doses, setDoses] = useState(1);
-  const [detalhes, setDetalhes] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
@@ -27,6 +28,14 @@ export default function Vacinas() {
       .finally(() => { if (!controller.signal.aborted) setCarregando(false); });
     return () => controller.abort();
   }, [atualizacao]);
+
+  function abrirTela({ cadastro = false, vacina = null }) {
+    setNovo(cadastro);
+    setDetalhes(vacina);
+    setDoses(1);
+    setErro('');
+    setSucesso('');
+  }
 
   async function salvar(event) {
     event.preventDefault();
@@ -59,7 +68,6 @@ export default function Vacinas() {
     setOcupado(true);
     try {
       await requisicao(`/vacinas/${vacina.id}/`, { method: 'DELETE' });
-      if (detalhes?.id === vacina.id) setDetalhes(null);
       setExclusao(null);
       setSucesso('Vacina excluída.');
       setAtualizacao((valor) => valor + 1);
@@ -71,6 +79,52 @@ export default function Vacinas() {
     }
   }
 
+  const mensagens = <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />;
+  const voltar = <button className="voltar" onClick={() => abrirTela({})} disabled={ocupado}>‹ Voltar para vacinas</button>;
+
+  if (novo) {
+    return (
+      <>
+        {voltar}
+        <h1>Nova vacina</h1>
+        <p className="subtitulo">Defina a quantidade de doses e o intervalo entre as aplicações.</p>
+        {mensagens}
+        <section className="painel" aria-label="Cadastro de vacina">
+          <form className="formulario" onSubmit={salvar}>
+            <label className="campo-inteiro">Título<input name="titulo" maxLength={60} required autoFocus /></label>
+            <label className="campo-inteiro">Descrição (opcional)<textarea name="descricao" maxLength={200} /></label>
+            <label>Doses<input type="number" name="doses" min={1} step={1} value={doses} onChange={(e) => setDoses(e.target.value)} required /></label>
+            {doses > 1 && <>
+              <label>Periodicidade<select name="periodicidade" defaultValue="" required>
+                <option value="" disabled>Selecione</option>
+                {Object.entries(PERIODICIDADES).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
+              </select></label>
+              <label>Intervalo<input type="number" name="intervalo" min={1} step={1} required /></label>
+            </>}
+            <div className="acoes-formulario">
+              <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar vacina'}</button>
+              <button type="button" onClick={() => abrirTela({})} disabled={ocupado}>Cancelar</button>
+            </div>
+          </form>
+        </section>
+      </>
+    );
+  }
+
+  if (detalhes) {
+    return (
+      <>
+        {voltar}
+        <h1>{detalhes.titulo}</h1>
+        <p className="subtitulo">Dados completos da vacina.</p>
+        <Detalhes titulo="Dados da vacina" dados={{
+          ID: detalhes.id, Título: detalhes.titulo, Descrição: detalhes.descricao,
+          Doses: detalhes.doses, Periodicidade: PERIODICIDADES[detalhes.periodicidade], Intervalo: detalhes.intervalo,
+        }} />
+      </>
+    );
+  }
+
   return (
     <>
       {exclusao && <Confirmacao
@@ -79,33 +133,10 @@ export default function Vacinas() {
       />}
       <div className="cabecalho-pagina">
         <h1>Vacinas</h1>
-        <button className="primario" onClick={() => { setNovo(true); setDoses(1); setDetalhes(null); }} disabled={ocupado || carregando}>Nova vacina</button>
+        <button className="primario" onClick={() => abrirTela({ cadastro: true })} disabled={ocupado || carregando}>Nova vacina</button>
       </div>
       <p className="subtitulo">Defina a quantidade de doses e o intervalo entre as aplicações.</p>
-      <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />
-      {novo && <section className="painel" aria-label="Cadastro de vacina">
-        <h2>Nova vacina</h2>
-        <form className="formulario" onSubmit={salvar}>
-          <label className="campo-inteiro">Título<input name="titulo" maxLength={60} required autoFocus /></label>
-          <label className="campo-inteiro">Descrição (opcional)<textarea name="descricao" maxLength={200} /></label>
-          <label>Doses<input type="number" name="doses" min={1} step={1} value={doses} onChange={(e) => setDoses(e.target.value)} required /></label>
-          {doses > 1 && <>
-            <label>Periodicidade<select name="periodicidade" defaultValue="" required>
-              <option value="" disabled>Selecione</option>
-              {Object.entries(PERIODICIDADES).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
-            </select></label>
-            <label>Intervalo<input type="number" name="intervalo" min={1} step={1} required /></label>
-          </>}
-          <div className="acoes-formulario">
-            <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar vacina'}</button>
-            <button type="button" onClick={() => setNovo(false)} disabled={ocupado}>Cancelar</button>
-          </div>
-        </form>
-      </section>}
-      {detalhes && <Detalhes titulo="Dados da vacina" fechar={() => setDetalhes(null)} dados={{
-        ID: detalhes.id, Título: detalhes.titulo, Descrição: detalhes.descricao,
-        Doses: detalhes.doses, Periodicidade: PERIODICIDADES[detalhes.periodicidade], Intervalo: detalhes.intervalo,
-      }} />}
+      {mensagens}
       {!carregando && <div className="tabela-container">
         <table>
           <caption>Vacinas cadastradas</caption>
@@ -115,7 +146,7 @@ export default function Vacinas() {
               <td>{vacina.titulo}</td><td>{vacina.doses}</td>
               <td>{PERIODICIDADES[vacina.periodicidade] || '—'}</td><td>{vacina.intervalo ?? '—'}</td>
               <td><div className="acoes">
-                <button onClick={() => { setDetalhes(vacina); setNovo(false); }}>Consultar</button>
+                <button onClick={() => abrirTela({ vacina })}>Consultar</button>
                 <button className="perigo" onClick={() => setExclusao(vacina)} disabled={ocupado}>Excluir</button>
               </div></td>
             </tr>)}

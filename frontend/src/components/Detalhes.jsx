@@ -3,7 +3,7 @@ export default function Detalhes({ titulo, dados, fechar }) {
     <section className="painel" aria-label={titulo}>
       <div className="cabecalho-painel">
         <h2>{titulo}</h2>
-        <button onClick={fechar}>Fechar detalhes</button>
+        {fechar && <button onClick={fechar}>Fechar detalhes</button>}
       </div>
       <dl className="detalhes">
         {Object.entries(dados).map(([nome, valor]) => (

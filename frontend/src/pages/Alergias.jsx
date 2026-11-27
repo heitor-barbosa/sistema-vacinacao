@@ -5,6 +5,7 @@ import Mensagens from '../components/Mensagens.jsx';
 
 export default function Alergias() {
   const [alergias, setAlergias] = useState([]);
+  // A página mostra a listagem ou o cadastro (novo).
   const [novo, setNovo] = useState(false);
   const [exclusao, setExclusao] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -23,6 +24,12 @@ export default function Alergias() {
       .finally(() => { if (!controller.signal.aborted) setCarregando(false); });
     return () => controller.abort();
   }, [atualizacao]);
+
+  function abrirTela(cadastro) {
+    setNovo(cadastro);
+    setErro('');
+    setSucesso('');
+  }
 
   async function salvar(event) {
     event.preventDefault();
@@ -59,6 +66,28 @@ export default function Alergias() {
     }
   }
 
+  const mensagens = <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />;
+
+  if (novo) {
+    return (
+      <>
+        <button className="voltar" onClick={() => abrirTela(false)} disabled={ocupado}>‹ Voltar para alergias</button>
+        <h1>Nova alergia</h1>
+        <p className="subtitulo">A alergia poderá ser associada aos pacientes.</p>
+        {mensagens}
+        <section className="painel" aria-label="Cadastro de alergia">
+          <form className="formulario" onSubmit={salvar}>
+            <label className="campo-inteiro">Nome<input name="nome" maxLength={40} required autoFocus /></label>
+            <div className="acoes-formulario">
+              <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar alergia'}</button>
+              <button type="button" onClick={() => abrirTela(false)} disabled={ocupado}>Cancelar</button>
+            </div>
+          </form>
+        </section>
+      </>
+    );
+  }
+
   return (
     <>
       {exclusao && <Confirmacao
@@ -67,20 +96,10 @@ export default function Alergias() {
       />}
       <div className="cabecalho-pagina">
         <h1>Alergias</h1>
-        <button className="primario" onClick={() => setNovo(true)} disabled={ocupado || carregando}>Nova alergia</button>
+        <button className="primario" onClick={() => abrirTela(true)} disabled={ocupado || carregando}>Nova alergia</button>
       </div>
       <p className="subtitulo">Cadastre as alergias que poderão ser associadas aos pacientes.</p>
-      <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />
-      {novo && <section className="painel" aria-label="Cadastro de alergia">
-        <h2>Nova alergia</h2>
-        <form className="formulario" onSubmit={salvar}>
-          <label className="campo-inteiro">Nome<input name="nome" maxLength={40} required autoFocus /></label>
-          <div className="acoes-formulario">
-            <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar alergia'}</button>
-            <button type="button" onClick={() => setNovo(false)} disabled={ocupado}>Cancelar</button>
-          </div>
-        </form>
-      </section>}
+      {mensagens}
       {!carregando && <div className="tabela-container">
         <table>
           <caption>Alergias cadastradas</caption>

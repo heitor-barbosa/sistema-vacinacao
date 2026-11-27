@@ -8,9 +8,10 @@ import Mensagens from '../components/Mensagens.jsx';
 export default function Pacientes({ verAgendas }) {
   const [pacientes, setPacientes] = useState([]);
   const [alergias, setAlergias] = useState([]);
+  // A página mostra a listagem, o cadastro (novo) ou os dados de um paciente (detalhes).
   const [novo, setNovo] = useState(false);
-  const [exclusao, setExclusao] = useState(null);
   const [detalhes, setDetalhes] = useState(null);
+  const [exclusao, setExclusao] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
@@ -31,6 +32,13 @@ export default function Pacientes({ verAgendas }) {
       .finally(() => { if (!controller.signal.aborted) setCarregando(false); });
     return () => controller.abort();
   }, [atualizacao]);
+
+  function abrirTela({ cadastro = false, paciente = null }) {
+    setNovo(cadastro);
+    setDetalhes(paciente);
+    setErro('');
+    setSucesso('');
+  }
 
   async function salvar(event) {
     event.preventDefault();
@@ -67,7 +75,6 @@ export default function Pacientes({ verAgendas }) {
     setOcupado(true);
     try {
       await requisicao(`/usuarios/${paciente.id}/`, { method: 'DELETE' });
-      if (detalhes?.id === paciente.id) setDetalhes(null);
       setExclusao(null);
       setSucesso('Paciente excluído.');
       setAtualizacao((valor) => valor + 1);
@@ -79,6 +86,65 @@ export default function Pacientes({ verAgendas }) {
     }
   }
 
+  const mensagens = <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />;
+  const voltar = <button className="voltar" onClick={() => abrirTela({})} disabled={ocupado}>‹ Voltar para pacientes</button>;
+
+  if (novo) {
+    return (
+      <>
+        {voltar}
+        <h1>Novo paciente</h1>
+        <p className="subtitulo">Informe os dados da pessoa que será vacinada e suas possíveis alergias.</p>
+        {mensagens}
+        <section className="painel" aria-label="Cadastro de paciente">
+          <form className="formulario" onSubmit={salvar}>
+            <label className="campo-inteiro">Nome<input name="nome" maxLength={60} required autoFocus /></label>
+            <label>Data de nascimento<input type="date" name="data_nascimento" max={dataHoje()} required /></label>
+            <label>Sexo<select name="sexo" defaultValue="" required>
+              <option value="" disabled>Selecione</option><option value="M">Masculino</option><option value="F">Feminino</option>
+            </select></label>
+            <label>Logradouro<input name="logradouro" maxLength={60} required /></label>
+            <label>Número<input type="number" name="numero" step={1} min={-9999999999} max={9999999999} required /></label>
+            <label>Setor<input name="setor" maxLength={40} required /></label>
+            <label>Cidade<input name="cidade" maxLength={40} required /></label>
+            <label>UF<select name="uf" defaultValue="" required>
+              <option value="" disabled>Selecione</option>
+              {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+            </select></label>
+            <fieldset className="campo-inteiro">
+              <legend>Alergias (opcional)</legend>
+              {alergias.length ? <div className="checkboxes">
+                {alergias.map((alergia) => <label key={alergia.id}>
+                  <input type="checkbox" name="alergias" value={alergia.id} />{alergia.nome}
+                </label>)}
+              </div> : <p className="ajuda">Nenhuma alergia cadastrada. Você pode cadastrar o paciente sem alergias.</p>}
+            </fieldset>
+            <div className="acoes-formulario">
+              <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar paciente'}</button>
+              <button type="button" onClick={() => abrirTela({})} disabled={ocupado}>Cancelar</button>
+            </div>
+          </form>
+        </section>
+      </>
+    );
+  }
+
+  if (detalhes) {
+    return (
+      <>
+        {voltar}
+        <h1>{detalhes.nome}</h1>
+        <p className="subtitulo">Dados completos do paciente.</p>
+        <Detalhes titulo="Dados do paciente" dados={{
+          ID: detalhes.id, Nome: detalhes.nome, 'Data de nascimento': formatarData(detalhes.data_nascimento),
+          Sexo: detalhes.sexo === 'M' ? 'Masculino' : 'Feminino', Logradouro: detalhes.logradouro,
+          Número: detalhes.numero, Setor: detalhes.setor, Cidade: detalhes.cidade, UF: detalhes.uf,
+          Alergias: detalhes.alergias_detalhes.map((alergia) => alergia.nome).join(', ') || 'Nenhuma',
+        }} />
+      </>
+    );
+  }
+
   return (
     <>
       {exclusao && <Confirmacao
@@ -87,46 +153,10 @@ export default function Pacientes({ verAgendas }) {
       />}
       <div className="cabecalho-pagina">
         <h1>Pacientes</h1>
-        <button className="primario" onClick={() => { setNovo(true); setDetalhes(null); }} disabled={ocupado || carregando}>Novo paciente</button>
+        <button className="primario" onClick={() => abrirTela({ cadastro: true })} disabled={ocupado || carregando}>Novo paciente</button>
       </div>
       <p className="subtitulo">Cadastre as pessoas que serão vacinadas e suas possíveis alergias.</p>
-      <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />
-      {novo && <section className="painel" aria-label="Cadastro de paciente">
-        <h2>Novo paciente</h2>
-        <form className="formulario" onSubmit={salvar}>
-          <label className="campo-inteiro">Nome<input name="nome" maxLength={60} required autoFocus /></label>
-          <label>Data de nascimento<input type="date" name="data_nascimento" max={dataHoje()} required /></label>
-          <label>Sexo<select name="sexo" defaultValue="" required>
-            <option value="" disabled>Selecione</option><option value="M">Masculino</option><option value="F">Feminino</option>
-          </select></label>
-          <label>Logradouro<input name="logradouro" maxLength={60} required /></label>
-          <label>Número<input type="number" name="numero" step={1} min={-9999999999} max={9999999999} required /></label>
-          <label>Setor<input name="setor" maxLength={40} required /></label>
-          <label>Cidade<input name="cidade" maxLength={40} required /></label>
-          <label>UF<select name="uf" defaultValue="" required>
-            <option value="" disabled>Selecione</option>
-            {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
-          </select></label>
-          <fieldset className="campo-inteiro">
-            <legend>Alergias (opcional)</legend>
-            {alergias.length ? <div className="checkboxes">
-              {alergias.map((alergia) => <label key={alergia.id}>
-                <input type="checkbox" name="alergias" value={alergia.id} />{alergia.nome}
-              </label>)}
-            </div> : <p className="ajuda">Nenhuma alergia cadastrada. Você pode cadastrar o paciente sem alergias.</p>}
-          </fieldset>
-          <div className="acoes-formulario">
-            <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar paciente'}</button>
-            <button type="button" onClick={() => setNovo(false)} disabled={ocupado}>Cancelar</button>
-          </div>
-        </form>
-      </section>}
-      {detalhes && <Detalhes titulo="Dados do paciente" fechar={() => setDetalhes(null)} dados={{
-        ID: detalhes.id, Nome: detalhes.nome, 'Data de nascimento': formatarData(detalhes.data_nascimento),
-        Sexo: detalhes.sexo === 'M' ? 'Masculino' : 'Feminino', Logradouro: detalhes.logradouro,
-        Número: detalhes.numero, Setor: detalhes.setor, Cidade: detalhes.cidade, UF: detalhes.uf,
-        Alergias: detalhes.alergias_detalhes.map((alergia) => alergia.nome).join(', ') || 'Nenhuma',
-      }} />}
+      {mensagens}
       {!carregando && <div className="tabela-container">
         <table>
           <caption>Pacientes cadastrados</caption>
@@ -135,7 +165,7 @@ export default function Pacientes({ verAgendas }) {
             {pacientes.map((paciente) => <tr key={paciente.id}>
               <td>{paciente.nome}</td><td>{formatarData(paciente.data_nascimento)}</td><td>{paciente.cidade}</td><td>{paciente.uf}</td>
               <td><div className="acoes">
-                <button onClick={() => { setDetalhes(paciente); setNovo(false); }}>Consultar</button>
+                <button onClick={() => abrirTela({ paciente })}>Consultar</button>
                 <button onClick={() => verAgendas(paciente.id)}>Ver agendamentos</button>
                 <button className="perigo" onClick={() => setExclusao(paciente)} disabled={ocupado}>Excluir</button>
               </div></td>

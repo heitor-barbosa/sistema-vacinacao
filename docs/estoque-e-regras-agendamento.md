@@ -1,6 +1,6 @@
 # Estoque de vacinas e regras de agendamento
 
-> **Situação:** em implementação. O cadastro de lotes pela API (RN01 a RN03, RN08 e RN20, issue #11) está implementado e documentado no [manual do backend](backend.md#lotes). A reserva no agendamento (#12), o consumo na baixa (#13) e as telas (#14) ainda não foram implementados. As decisões em aberto estão na seção [7](#7-decisões-e-recomendações) e no [planejamento](planejamento.md#3-decisões-pendentes).
+> **Situação:** em implementação. O cadastro de lotes pela API (RN01 a RN03, RN08 e RN20, issue #11) está implementado e documentado no [manual do backend](backend.md#lotes). A tela Estoque já gerencia os lotes ([manual do frontend](frontend.md#estoque)). A reserva no agendamento (#12), o consumo na baixa (#13) e a apresentação da disponibilidade e do lote utilizado nas telas (#14) ainda não foram implementados. As decisões em aberto estão na seção [7](#7-decisões-e-recomendações) e no [planejamento](planejamento.md#3-decisões-pendentes).
 
 O estoque de vacinas foi sugerido pelo professor em 17/11/2026. Em **23/11/2026**, o responsável confirmou o controle por **lotes, validade e reservas** e retirou da proposta as regras adicionais de reaplicação e a lista de espera.
 

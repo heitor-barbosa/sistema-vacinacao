@@ -11,6 +11,7 @@ let alergias;
 let pacientes;
 let vacinas;
 let agendas;
+let lotes;
 
 // Respostas controladas do contrato da API. O cálculo das doses é testado no backend.
 async function apiSimulada(caminho, { method = 'GET', dados } = {}) {
@@ -18,7 +19,7 @@ async function apiSimulada(caminho, { method = 'GET', dados } = {}) {
   const partes = url.pathname.split('/').filter(Boolean);
   const recurso = partes[0];
   const id = Number(partes[1]);
-  const listas = { alergias, usuarios: pacientes, vacinas, agendas };
+  const listas = { alergias, usuarios: pacientes, vacinas, agendas, lotes };
 
   if (method === 'GET') {
     let lista = listas[recurso];
@@ -49,6 +50,10 @@ async function apiSimulada(caminho, { method = 'GET', dados } = {}) {
   }
   const registro = { ...dados, id: listas[recurso].length + 1 };
   if (recurso === 'usuarios') registro.alergias_detalhes = alergias.filter((item) => dados.alergias.includes(item.id));
+  if (recurso === 'lotes') {
+    registro.vacina_titulo = vacinas.find((item) => item.id === dados.vacina).titulo;
+    registro.situacao_validade = 'Valido';
+  }
   listas[recurso].push(registro);
   return structuredClone(registro);
 }
@@ -62,6 +67,7 @@ beforeEach(() => {
   }];
   vacinas = [{ id: 1, titulo: 'Vacina mensal', descricao: 'Descrição completa', doses: 3, periodicidade: 3, intervalo: 1 }];
   agendas = [];
+  lotes = [];
   requisicao.mockReset();
   requisicao.mockImplementation(apiSimulada);
 });
@@ -69,6 +75,11 @@ beforeEach(() => {
 async function abrirPagina(user, nome) {
   await user.click(within(screen.getByRole('navigation')).getByRole('button', { name: nome, exact: true }));
   await screen.findByRole('table');
+}
+
+async function abrirEstoque(user) {
+  await user.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Estoque', exact: true }));
+  await screen.findByRole('region', { name: 'Vacinas em estoque' });
 }
 
 async function preencherPaciente(user, nome) {
@@ -126,6 +137,91 @@ describe('telas essenciais', () => {
     expect(requisicao).toHaveBeenCalledWith('/vacinas/', { method: 'POST', dados: {
       titulo: 'Duas doses', descricao: '', doses: 2, periodicidade: 2, intervalo: 3,
     } });
+  });
+
+  it('mostra cada vacina em um card e abre uma tela com as doses de cada lote', async () => {
+    const user = userEvent.setup();
+    vacinas.push({ id: 2, titulo: 'Vacina anual', descricao: '', doses: 1, periodicidade: null, intervalo: null });
+    lotes = [
+      { id: 1, vacina: 2, vacina_titulo: 'Vacina anual', numero: 'A01', fabricante: 'Fabricante B', validade: '2026-01-10', quantidade: 5, situacao_validade: 'Vencido' },
+      { id: 2, vacina: 2, vacina_titulo: 'Vacina anual', numero: 'A02', fabricante: 'Fabricante B', validade: '2026-12-20', quantidade: 30, situacao_validade: 'Vence em breve' },
+    ];
+    render(<App />);
+    await abrirEstoque(user);
+    const anual = screen.getByRole('button', { name: /^Vacina anual/ });
+    expect(anual.textContent).toContain('30doses em lotes válidos');
+    expect(anual.textContent).toContain('2 lote(s)');
+    expect(anual.textContent).toContain('1 vence(m) em breve');
+    expect(anual.textContent).toContain('1 vencido(s)');
+    expect(screen.getByRole('button', { name: /^Vacina mensal/ }).textContent).toContain('Nenhum lote cadastrado');
+
+    await user.click(anual);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Vacina anual');
+    expect(screen.queryByRole('region', { name: 'Vacinas em estoque' })).toBeNull();
+    const itens = within(screen.getByRole('region', { name: 'Lotes de Vacina anual' })).getAllByRole('listitem');
+    expect(itens[0].textContent).toContain('Lote A01');
+    expect(itens[0].textContent).toContain('10/01/2026');
+    expect(itens[0].textContent).toContain('5 doses');
+    expect(itens[1].textContent).toContain('Vence em breve');
+    expect(itens[1].textContent).toContain('30 doses');
+
+    await user.click(screen.getByRole('button', { name: '‹ Voltar ao estoque' }));
+    expect(screen.getByRole('region', { name: 'Vacinas em estoque' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /^Vacina anual/ }));
+    await abrirEstoque(user);
+    expect(screen.queryByRole('region', { name: 'Lotes de Vacina anual' })).toBeNull();
+  });
+
+  it('cadastra lote em uma tela própria e volta para a vacina do lote', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await abrirEstoque(user);
+    await user.click(screen.getByRole('button', { name: 'Novo lote' }));
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Novo lote');
+    expect(screen.queryByRole('region', { name: 'Vacinas em estoque' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByRole('region', { name: 'Vacinas em estoque' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: /^Vacina mensal/ }));
+    await user.click(screen.getByRole('button', { name: 'Novo lote' }));
+    const formulario = within(screen.getByRole('region', { name: 'Cadastro de lote' }));
+    expect(formulario.getByRole('combobox', { name: 'Vacina' }).value).toBe('1');
+    await user.type(formulario.getByLabelText('Número do lote'), 'L001');
+    await user.type(formulario.getByLabelText('Fabricante'), 'Fabricante A');
+    await user.type(formulario.getByLabelText('Validade'), '2027-03-31');
+    await user.type(formulario.getByLabelText('Quantidade de doses'), '100');
+    await user.click(formulario.getByRole('button', { name: 'Salvar lote' }));
+    await screen.findByText('Lote cadastrado.');
+    expect(requisicao).toHaveBeenCalledWith('/lotes/', { method: 'POST', dados: {
+      vacina: 1, numero: 'L001', fabricante: 'Fabricante A', validade: '2027-03-31', quantidade: 100,
+    } });
+    const painel = await screen.findByRole('region', { name: 'Lotes de Vacina mensal' });
+    expect(painel.textContent).toContain('Lote L001');
+    expect(painel.textContent).toContain('31/03/2027');
+    expect(painel.textContent).toContain('100 doses');
+    expect(screen.getByText('100 doses em lotes válidos · 1 lote(s)')).toBeTruthy();
+  });
+
+  it('mantém o lote e mostra a mensagem da API quando ele já foi utilizado', async () => {
+    const user = userEvent.setup();
+    lotes = [{
+      id: 1, vacina: 1, vacina_titulo: 'Vacina mensal', numero: 'L001', fabricante: 'Fabricante A',
+      validade: '2027-03-31', quantidade: 99, situacao_validade: 'Valido',
+    }];
+    requisicao.mockImplementation((caminho, opcoes = {}) => {
+      if (opcoes.method === 'DELETE') {
+        return Promise.reject(new Error('O lote já foi utilizado em uma aplicação e não pode ser excluído.'));
+      }
+      return apiSimulada(caminho, opcoes);
+    });
+    render(<App />);
+    await abrirEstoque(user);
+    await user.click(screen.getByRole('button', { name: /^Vacina mensal/ }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('O lote já foi utilizado em uma aplicação');
+    expect(requisicao).toHaveBeenCalledWith('/lotes/1/', { method: 'DELETE' });
+    expect(screen.getByRole('region', { name: 'Lotes de Vacina mensal' }).textContent).toContain('Lote L001');
   });
 
   it('cadastra pacientes com zero ou várias alergias e consulta seus dados', async () => {
@@ -200,6 +296,39 @@ describe('telas essenciais', () => {
     await screen.findByText('Agenda excluída.');
     expect(agendas.map((item) => item.id)).toEqual([1, 3]);
     expect(requisicao).toHaveBeenCalledWith('/agendas/2/', { method: 'DELETE' });
+  });
+
+  it('abre cadastros e consultas em telas próprias, separadas da listagem', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const cadastros = [
+      ['Alergias', 'Nova alergia', '‹ Voltar para alergias'],
+      ['Vacinas', 'Nova vacina', '‹ Voltar para vacinas'],
+      ['Pacientes', 'Novo paciente', '‹ Voltar para pacientes'],
+      ['Agendas', 'Novo agendamento', '‹ Voltar para agendas'],
+    ];
+    for (const [pagina, botao, voltar] of cadastros) {
+      await abrirPagina(user, pagina);
+      await user.click(screen.getByRole('button', { name: botao, exact: true }));
+      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(botao);
+      expect(screen.queryByRole('table')).toBeNull();
+      await user.click(screen.getByRole('button', { name: voltar }));
+      expect(screen.getByRole('table')).toBeTruthy();
+    }
+
+    await abrirPagina(user, 'Vacinas');
+    await user.click(screen.getByRole('button', { name: 'Consultar' }));
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Vacina mensal');
+    expect(screen.getByRole('region', { name: 'Dados da vacina' }).textContent).toContain('Descrição completa');
+    expect(screen.queryByRole('table')).toBeNull();
+    await user.click(screen.getByRole('button', { name: '‹ Voltar para vacinas' }));
+    expect(screen.getByRole('table')).toBeTruthy();
+
+    await abrirPagina(user, 'Pacientes');
+    await user.click(screen.getByRole('button', { name: 'Consultar' }));
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Maria');
+    await abrirPagina(user, 'Pacientes');
+    expect(screen.queryByRole('region', { name: 'Dados do paciente' })).toBeNull();
   });
 
   it('fecha a confirmação e mostra o erro quando uma exclusão falha', async () => {
