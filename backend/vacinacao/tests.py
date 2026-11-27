@@ -1,13 +1,23 @@
-from datetime import date, timedelta
+import threading
+from datetime import date, time, timedelta
+from unittest import skipUnless
 from unittest.mock import patch
 
-from django.db import IntegrityError, transaction
-from django.test import override_settings
+from django.db import IntegrityError, connection, transaction
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from usuarios.models import Alergia, Usuario
 from .models import Agenda, Lote, Vacina
+from .services import VacinaIndisponivel, criar_agendas
+
+
+def criar_usuario(nome="Maria"):
+    return Usuario.objects.create(
+        nome=nome, data_nascimento=date(2000, 5, 20), sexo="F",
+        logradouro="Rua A", numero=10, setor="Centro", cidade="Goiânia", uf="GO",
+    )
 
 
 class VacinacaoAPITests(APITestCase):
@@ -17,6 +27,11 @@ class VacinacaoAPITests(APITestCase):
             logradouro="Rua A", numero=10, setor="Centro", cidade="Goiânia", uf="GO",
         )
         self.vacina = Vacina.objects.create(titulo="Vacina de teste", doses=1)
+        # Com a reserva de estoque (#12), agendar exige doses disponíveis em lotes válidos.
+        Lote.objects.create(
+            vacina=self.vacina, numero="L-TESTE", fabricante="Fabricante A",
+            validade=date(9999, 12, 31), quantidade=1000,
+        )
         self.dados = {
             "usuario": self.usuario.pk, "vacina": self.vacina.pk,
             "data": "2026-11-02", "hora": "09:30:00", "observacoes": "Primeira visita",
@@ -351,3 +366,136 @@ class LoteAPITests(APITestCase):
     def test_consulta_e_exclusao_de_lote_inexistente_retornam_404(self):
         self.assertEqual(self.client.get("/api/lotes/999/").status_code, 404)
         self.assertEqual(self.client.delete("/api/lotes/999/").status_code, 404)
+
+
+class EstoqueAgendamentoTests(APITestCase):
+    def setUp(self):
+        self.usuario = criar_usuario()
+        self.vacina = Vacina.objects.create(titulo="Vacina de teste", doses=1)
+        self.hoje = timezone.localdate()
+        self.inicio = self.hoje + timedelta(days=10)
+
+    def criar_lote(self, quantidade, validade=None, numero="L001"):
+        validade = validade or self.hoje + timedelta(days=365)
+        return Lote.objects.create(
+            vacina=self.vacina, numero=numero, fabricante="Fabricante A",
+            validade=validade, quantidade=quantidade,
+        )
+
+    def agendar(self, data=None):
+        return self.client.post("/api/agendas/", {
+            "usuario": self.usuario.pk, "vacina": self.vacina.pk,
+            "data": (data or self.inicio).isoformat(), "hora": "09:30:00",
+        }, format="json")
+
+    def usar_tres_doses(self):
+        self.vacina.doses = 3
+        self.vacina.periodicidade = Vacina.Periodicidade.MESES
+        self.vacina.intervalo = 1
+        self.vacina.save()
+
+    def test_reserva_todas_as_doses_sem_alterar_a_quantidade_dos_lotes(self):
+        self.usar_tres_doses()
+        lote = self.criar_lote(quantidade=3)
+        response = self.agendar()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual([a["dose"] for a in response.data], [1, 2, 3])
+        lote.refresh_from_db()
+        self.assertEqual(lote.quantidade, 3)
+        vacina = self.client.get(f"/api/vacinas/{self.vacina.pk}/").data
+        self.assertEqual(vacina["estoque_lotes"], 3)
+        self.assertEqual(vacina["doses_reservadas"], 3)
+        self.assertEqual(vacina["estoque_disponivel"], 0)
+
+    def test_recusa_sem_estoque_para_todas_as_doses_sem_agendas_parciais(self):
+        self.usar_tres_doses()
+        self.criar_lote(quantidade=2)
+        response = self.agendar()
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.data["detail"],
+            "Vacina indisponível: não há doses suficientes da vacina Vacina de teste em estoque. "
+            "O agendamento não foi realizado.",
+        )
+        self.assertFalse(Agenda.objects.exists())
+
+    def test_recusa_vacina_sem_lotes(self):
+        self.assertEqual(self.agendar().status_code, 409)
+        self.assertFalse(Agenda.objects.exists())
+
+    def test_desconta_as_reservas_existentes(self):
+        self.criar_lote(quantidade=1)
+        self.assertEqual(self.agendar().status_code, 201)
+        self.assertEqual(self.agendar().status_code, 409)
+        self.assertEqual(Agenda.objects.count(), 1)
+
+    def test_considera_os_lotes_validos_somente_na_data_da_primeira_dose(self):
+        self.usar_tres_doses()
+        self.criar_lote(quantidade=3, validade=self.inicio - timedelta(days=1), numero="VENCIDO")
+        self.assertEqual(self.agendar().status_code, 409)
+        # A validade vale até o próprio dia. As doses seguintes não são conferidas com a validade (D24).
+        self.criar_lote(quantidade=3, validade=self.inicio, numero="NO-DIA")
+        response = self.agendar()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data), 3)
+
+    def test_cancelar_ou_excluir_agenda_agendada_libera_a_reserva(self):
+        self.criar_lote(quantidade=1)
+        agenda_id = self.agendar().data[0]["id"]
+        self.client.post(f"/api/agendas/{agenda_id}/baixa/", {"situacao": "Cancelado"}, format="json")
+        response = self.agendar()
+        self.assertEqual(response.status_code, 201)
+        self.client.delete(f"/api/agendas/{response.data[0]['id']}/")
+        self.assertEqual(self.agendar().status_code, 201)
+
+    def test_vacina_informa_o_estoque_sem_disponivel_negativo(self):
+        self.criar_lote(quantidade=2)
+        self.criar_lote(quantidade=5, validade=self.hoje - timedelta(days=1), numero="VENCIDO")
+        self.agendar()
+        self.agendar()
+        # Reserva feita antes de um lote vencer: as reservas passam do estoque em lotes (RN04).
+        Agenda.objects.create(usuario=self.usuario, vacina=self.vacina, data=self.inicio, hora="09:30", dose=1)
+        vacina = self.client.get("/api/vacinas/").data[0]
+        self.assertEqual(vacina["estoque_lotes"], 2)
+        self.assertEqual(vacina["doses_reservadas"], 3)
+        self.assertEqual(vacina["estoque_disponivel"], 0)
+
+    def test_campos_de_estoque_da_vacina_sao_somente_leitura(self):
+        response = self.client.post("/api/vacinas/", {
+            "titulo": "Nova", "doses": 1, "estoque_lotes": 50, "estoque_disponivel": 50,
+        }, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["estoque_lotes"], 0)
+        self.assertEqual(response.data["doses_reservadas"], 0)
+        self.assertEqual(response.data["estoque_disponivel"], 0)
+
+
+@skipUnless(connection.vendor == "postgresql", "O SQLite não tem bloqueio de linhas; o teste roda no PostgreSQL do CI.")
+class AgendamentoSimultaneoTests(TransactionTestCase):
+    def test_agendamento_simultaneo_espera_o_bloqueio_e_respeita_o_saldo(self):
+        usuario = criar_usuario()
+        vacina = Vacina.objects.create(titulo="Vacina de teste", doses=1)
+        Lote.objects.create(vacina=vacina, numero="L001", fabricante="A", validade=date(2099, 12, 31), quantidade=1)
+        dados = {"usuario": usuario, "vacina": vacina, "data": date(2099, 1, 10), "hora": time(9, 30)}
+        resultado = {}
+
+        def agendar_em_outra_conexao():
+            try:
+                criar_agendas(**dados)
+                resultado["situacao"] = "criado"
+            except VacinaIndisponivel:
+                resultado["situacao"] = "recusado"
+            finally:
+                connection.close()
+
+        # O primeiro agendamento reserva a única dose e mantém os lotes bloqueados até o commit.
+        with transaction.atomic():
+            criar_agendas(**dados)
+            outro = threading.Thread(target=agendar_em_outra_conexao)
+            outro.start()
+            outro.join(timeout=1)
+            self.assertTrue(outro.is_alive(), "O segundo agendamento deveria esperar o bloqueio dos lotes.")
+
+        outro.join(timeout=10)
+        self.assertEqual(resultado.get("situacao"), "recusado")
+        self.assertEqual(Agenda.objects.count(), 1)
