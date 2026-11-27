@@ -2,9 +2,9 @@
 
 ## Escopo desta etapa
 
-API dos itens 1 a 6 do [enunciado](instrucoes-projeto.md). O frontend React está descrito no [manual do frontend](frontend.md). A funcionalidade adicional do Item 7 fica para uma etapa posterior.
+API dos itens 1 a 6 do [enunciado](instrucoes-projeto.md). O frontend React está descrito no [manual do frontend](frontend.md). Do estoque de vacinas, candidato à funcionalidade adicional do Item 7 e [especificado](estoque-e-regras-agendamento.md), já está disponível o cadastro de lotes; a reserva no agendamento e o consumo na baixa ainda não foram implementados.
 
-Há dois apps de domínio: `usuarios` (pacientes e alergias) e `vacinacao` (vacinas e agendas). Os usuários são pacientes, sem contas de acesso ou autenticação nesta etapa. Não há Django Admin.
+Há dois apps de domínio: `usuarios` (pacientes e alergias) e `vacinacao` (vacinas, lotes e agendas). Os usuários são pacientes, sem contas de acesso ou autenticação nesta etapa. Não há Django Admin.
 
 Os endpoints permitem inclusão, exclusão e consulta, conforme o CRUD obrigatório do enunciado. PUT e PATCH não estão habilitados; alteração é opcional no trabalho. A baixa é feita por um endpoint específico.
 
@@ -90,7 +90,7 @@ python -m pip check
 
 Os testes usam exclusivamente SQLite em memória. O Django aplica as migrations nesse banco temporário e o descarta ao terminar. Esses comandos não conectam ao PostgreSQL do `.env` nem criam bancos nele. Não use `config.test_settings` para executar a aplicação real.
 
-A suíte cobre cadastros, alergias dos pacientes, geração das doses em todas as periodicidades, fins de mês, anos bissextos, rollback em falha, filtros, ordenação do dia, baixa e exclusões em cascata.
+A suíte cobre cadastros, alergias dos pacientes, geração das doses em todas as periodicidades, fins de mês, anos bissextos, rollback em falha, filtros, ordenação do dia, baixa e exclusões em cascata. Para os lotes, cobre cadastro, ordenação, filtro, restrições de quantidade e de número único, classificação da validade e a recusa de exclusão de lote utilizado.
 
 O pipeline de CI executa, além desses comandos, a mesma suíte em um PostgreSQL real (`python manage.py test usuarios vacinacao`, sem `--settings`). Em 17/11/2026, ela foi executada com sucesso em PostgreSQL 16 dentro do container da API.
 
@@ -109,7 +109,9 @@ Todas as rotas terminam com `/`. Não há paginação: as listagens retornam tod
 | GET / POST | `/api/usuarios/` | Listar / cadastrar paciente. |
 | GET / DELETE | `/api/usuarios/{id}/` | Consultar / excluir paciente e suas agendas. |
 | GET / POST | `/api/vacinas/` | Listar / cadastrar vacina. |
-| GET / DELETE | `/api/vacinas/{id}/` | Consultar / excluir vacina e suas agendas. |
+| GET / DELETE | `/api/vacinas/{id}/` | Consultar / excluir vacina, seus lotes e suas agendas. |
+| GET / POST | `/api/lotes/` | Listar em ordem de validade / cadastrar lote. |
+| GET / DELETE | `/api/lotes/{id}/` | Consultar / excluir lote ainda não utilizado. |
 | GET / POST | `/api/agendas/` | Listar / gerar os agendamentos de todas as doses. |
 | GET / DELETE | `/api/agendas/{id}/` | Consultar / excluir apenas a agenda indicada. |
 | GET | `/api/agendas/hoje/` | Listar agendas da data atual. |
@@ -175,6 +177,34 @@ POST `/api/vacinas/`:
 | 4 | Anos |
 
 Para mais de uma dose, periodicidade válida e intervalo inteiro maior que zero são obrigatórios. Para dose única, periodicidade e intervalo podem ser omitidos ou nulos; não participam do cálculo.
+
+### Lotes
+
+POST `/api/lotes/`:
+
+```json
+{
+  "vacina": 1,
+  "numero": "L001",
+  "fabricante": "Fabricante A",
+  "validade": "2027-03-31",
+  "quantidade": 100
+}
+```
+
+Todos os campos são obrigatórios. A vacina deve existir. `numero` tem até 30 caracteres e é único para cada vacina; o mesmo número pode ser usado em vacinas diferentes. `fabricante` tem até 60 caracteres. `quantidade` é um inteiro maior ou igual a zero, e cada unidade corresponde a uma dose. Datas usam `AAAA-MM-DD`.
+
+A resposta inclui `id`, os campos cadastrados, `vacina_titulo` e `situacao_validade`, calculada para a data atual em `America/Sao_Paulo` (RN20 da [especificação do estoque](estoque-e-regras-agendamento.md)):
+
+| `situacao_validade` | Condição |
+| --- | --- |
+| `Vencido` | Validade anterior à data atual. |
+| `Vence em breve` | Validade entre a data atual e os próximos 30 dias, inclusive. O lote ainda pode ser usado no dia da validade. |
+| `Valido` | Validade depois desse prazo. |
+
+A listagem é ordenada por validade e ID e aceita o filtro opcional `/api/lotes/?vacina={id}`. Um filtro inválido retorna 400; uma vacina inexistente retorna lista vazia.
+
+Um lote já registrado em uma aplicação (`agendas.lote_id`) não pode ser excluído: a exclusão retorna 400 com a mensagem em `detail`. Excluir a vacina exclui seus lotes e suas agendas, inclusive quando um lote já foi utilizado. Como não há PUT nem PATCH, um lote cadastrado errado é corrigido por exclusão e novo cadastro, enquanto não tiver sido utilizado.
 
 ### Agendamentos
 
@@ -279,4 +309,4 @@ O backend define `data_situacao` como a data atual em `America/Sao_Paulo`, indep
 
 ## Decisões sobre o modelo
 
-Consulte [as adequações documentadas](modelo-dados.md). A exclusão de um paciente ou de uma vacina apaga suas agendas em cascata, conforme decisão do responsável. A exclusão de alergia remove suas associações, preservando os pacientes. Excluir uma agenda não exclui as outras doses.
+Consulte [as adequações documentadas](modelo-dados.md). A exclusão de um paciente ou de uma vacina apaga suas agendas em cascata, conforme decisão do responsável; a exclusão de uma vacina também apaga seus lotes. A exclusão de alergia remove suas associações, preservando os pacientes. Excluir uma agenda não exclui as outras doses.

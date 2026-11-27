@@ -5,7 +5,7 @@ O ponto de partida é o [MER em PNG](mer-vacinacao.png). As decisões abaixo reg
 ## Organização
 
 - App `usuarios`: modelos `Usuario` e `Alergia`, nas tabelas `usuarios` e `alergias`.
-- App `vacinacao`: modelos `Vacina` e `Agenda`, nas tabelas `vacinas` e `agendas`.
+- App `vacinacao`: modelos `Vacina` e `Agenda`, nas tabelas `vacinas` e `agendas`, e o modelo `Lote`, na tabela `lotes`, acrescentado para o estoque (ver [Adequações para o estoque](#adequações-para-o-estoque)).
 - `Usuario` representa um paciente. Não estende o usuário de autenticação do Django.
 - IDs são inteiros gerados automaticamente, correspondendo ao `int` do MER.
 
@@ -32,15 +32,15 @@ O ponto de partida é o [MER em PNG](mer-vacinacao.png). As decisões abaixo reg
 
 Cada POST de agendamento cria um conjunto completo de doses em uma transação. Os intervalos são calculados a partir da primeira data escolhida; meses e anos usam o último dia válido quando o dia original não existir. As agendas mantêm o mesmo horário e observações.
 
-Não foi acrescentado um modelo de esquema vacinal, histórico ou outra entidade adicional. Até esta etapa, não há implantação de funcionalidades fora dos itens 1 a 6.
+Para os itens 1 a 6, não foi acrescentado um modelo de esquema vacinal, histórico ou outra entidade adicional. As estruturas do estoque estão descritas na seção seguinte.
 
-## Adequações previstas: estoque
+## Adequações para o estoque
 
-> **Situação:** previstas, ainda não implementadas. Correspondem à proposta de estoque por lotes confirmada pelo responsável em 23/11/2026, candidata ao Item 7, especificada em [estoque-e-regras-agendamento.md](estoque-e-regras-agendamento.md).
+> **Situação:** a tabela `lotes` e o campo `agendas.lote_id` foram criados na migration `vacinacao/0002_lotes` (issue #11), com cadastro, consulta, listagem e exclusão de lotes pela API. A reserva no agendamento (issue #12) e o consumo na baixa Realizado (issue #13) ainda não foram implementados. As estruturas correspondem à proposta de estoque por lotes confirmada pelo responsável em 23/11/2026, candidata ao Item 7, especificada em [estoque-e-regras-agendamento.md](estoque-e-regras-agendamento.md).
 
 O MER não possui onde registrar a quantidade disponível de cada vacina e a validade dos lotes. As adequações abaixo apenas acrescentam estruturas; nenhuma tabela ou campo do MER é removido ou alterado.
 
-- **Nova tabela `lotes`** (modelo `Lote`, app `vacinacao`): `vacina_id`, `numero`, `fabricante`, `validade` e `quantidade`. É necessária porque a disponibilidade de uma vacina depende da quantidade e da validade de cada lote recebido; um único campo de quantidade na vacina não permitiria descartar as unidades vencidas. Restrições: quantidade maior ou igual a zero e número do lote único por vacina. Excluir uma vacina exclui seus lotes em cascata, mantendo o comportamento já adotado para as agendas. O agendamento não altera a quantidade: cada agenda Agendado apenas reserva uma dose, e as reservas são calculadas pela contagem dessas agendas, sem tabela própria. A quantidade só diminui na baixa Realizado, quando o sistema escolhe o lote válido que vence primeiro.
-- **Novo campo `agendas.lote_id`**, chave estrangeira opcional para `lotes`, preenchida na baixa Realizado. Registra de qual lote saiu a dose aplicada. Usa `RESTRICT`: impede excluir um lote já utilizado, mas permite a exclusão em cascata quando a vacina inteira é excluída. Agendas realizadas antes da funcionalidade ficam com o campo nulo.
+- **Nova tabela `lotes`** (modelo `Lote`, app `vacinacao`): `vacina_id`, `numero`, `fabricante`, `validade` e `quantidade`. É necessária porque a disponibilidade de uma vacina depende da quantidade e da validade de cada lote recebido; um único campo de quantidade na vacina não permitiria descartar as unidades vencidas. Restrições no banco: quantidade maior ou igual a zero, criada pelo `PositiveIntegerField`, e número do lote único por vacina (`lote_numero_unico_por_vacina`). Excluir uma vacina exclui seus lotes em cascata, mantendo o comportamento já adotado para as agendas. O agendamento não altera a quantidade: cada agenda Agendado apenas reserva uma dose, e as reservas são calculadas pela contagem dessas agendas, sem tabela própria. A quantidade só diminui na baixa Realizado, quando o sistema escolhe o lote válido que vence primeiro.
+- **Novo campo `agendas.lote_id`**, chave estrangeira opcional para `lotes`, a ser preenchida na baixa Realizado (issue #13). Foi criada na mesma migration da tabela `lotes` para que a issue #13 não precise de outra migration. Registra de qual lote saiu a dose aplicada. Usa `RESTRICT`: impede excluir um lote já utilizado, mas permite a exclusão em cascata quando a vacina inteira é excluída. Agendas realizadas antes da funcionalidade ficam com o campo nulo.
 
 Os campos existentes `doses`, `periodicidade` e `intervalo` continuam definindo a geração das doses. Por decisão do responsável em 23/11/2026, não serão acrescentados campos de reaplicação nem uma tabela de lista de espera; a indisponibilidade apenas impede o agendamento.

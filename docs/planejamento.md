@@ -122,7 +122,7 @@ As fases estão em ordem de dependência: cada uma usa o que as anteriores criam
 
 Vem primeiro porque foi sugerida pelo professor, é candidata ao Item 7 (D01) e não depende de autenticação, unidades ou cadastro completo do paciente. Especificação: [estoque-e-regras-agendamento.md](estoque-e-regras-agendamento.md).
 
-- [ ] **A04** Criar o modelo `Lote` (tabela `lotes`) com vacina, número, fabricante, validade e quantidade, com restrição de quantidade não negativa e número único por vacina, e os endpoints de listagem, cadastro, consulta e exclusão (RN01 a RN03, RN08).
+- [x] **A04** Criar o modelo `Lote` (tabela `lotes`) com vacina, número, fabricante, validade e quantidade, com restrição de quantidade não negativa e número único por vacina, e os endpoints de listagem, cadastro, consulta e exclusão (RN01 a RN03, RN08).
 - [ ] **A05** Acrescentar às respostas de vacina os campos somente leitura de estoque em lotes, doses reservadas e estoque disponível (RN03, RN04), mantendo os campos atuais do cadastro.
 - [ ] **A07** No agendamento, calcular o estoque disponível descontando as doses reservadas pelas agendas Agendado e recusar com HTTP 409 ("vacina indisponível") quando ele não cobrir as doses do agendamento, sem criar nenhuma agenda e bloqueando os lotes durante a transação (RN04, RN05), conforme D14.
 - [ ] **A08** Na baixa Realizado, o sistema escolhe o lote válido que vence primeiro, desconta uma unidade e o registra em `Agenda.lote`, na mesma transação, informando o lote na resposta e recusando a baixa sem lote válido (RN06, RN07). Classificar os lotes por validade (RN20), conforme D19.
