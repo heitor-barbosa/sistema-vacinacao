@@ -2,11 +2,13 @@
 
 ## Escopo
 
-Interface React para os itens 1 a 6 do [enunciado](instrucoes-projeto.md). As telas Agendas, Pacientes, Vacinas e Alergias atendem a esses itens. Cada cadastro reúne listagem, inclusão, consulta dos dados completos e exclusão na própria tela.
+Interface React para os itens 1 a 6 do [enunciado](instrucoes-projeto.md). As telas Agendas, Pacientes, Vacinas e Alergias atendem a esses itens. Cada página abre na listagem, com a exclusão. A pedido do responsável pelo projeto, a inclusão e a consulta dos dados completos abrem uma tela própria, separada da listagem, com o botão **‹ Voltar** para retornar; um novo clique na página no menu também volta à listagem.
 
 A página **Início**, com resumo e calendário, e o menu lateral foram solicitados pelo responsável pelo projeto. Não fazem parte do enunciado original nem substituem a funcionalidade adicional do Item 7.
 
-A aplicação não inclui login, edição ou a funcionalidade adicional do Item 7, conforme as decisões do projeto.
+A tela **Estoque** faz parte do controle de estoque por lotes (épico #9, issue #14), ainda em implementação. Por enquanto, ela gerencia os lotes; a disponibilidade por vacina, a recusa por falta de estoque e o lote utilizado na aplicação serão apresentados quando a API oferecer esses dados (issues #12 e #13).
+
+A aplicação não inclui login nem edição, conforme as decisões do projeto.
 
 ## Tecnologias e organização
 
@@ -40,6 +42,7 @@ frontend/
         ├── Agendas.jsx
         ├── Pacientes.jsx
         ├── Vacinas.jsx
+        ├── Estoque.jsx
         └── Alergias.jsx
 ```
 
@@ -99,7 +102,7 @@ Abra `http://127.0.0.1:5173/`. A porta é fixa para corresponder à configuraç�
 
 ## As telas
 
-O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas) e Cadastros (Pacientes, Vacinas e Alergias). Em telas estreitas, ele passa para o topo da página.
+O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas) e Cadastros (Pacientes, Vacinas, Estoque e Alergias). Em telas estreitas, ele passa para o topo da página.
 
 ### Início
 
@@ -117,7 +120,7 @@ O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas)
 - Filtros por data, situação e paciente são aplicados automaticamente quando alterados.
 - **Hoje** aplica a data atual, preservando os outros filtros. **Limpar filtros** mostra todas as datas, pacientes e situações.
 - A listagem mantém a ordem devolvida pelo backend: Agendado, Realizado e Cancelado, seguida de data e horário dentro de cada situação.
-- **Novo agendamento** solicita paciente, vacina, data da primeira dose, horário e observações opcionais. É necessário ter pelo menos um paciente e uma vacina cadastrados.
+- **Novo agendamento** abre uma tela própria, que solicita paciente, vacina, data da primeira dose, horário e observações opcionais. É necessário ter pelo menos um paciente e uma vacina cadastrados.
 - A quantidade de doses e o intervalo da vacina são apresentados no formulário. O backend gera todas as agendas; o frontend não recalcula o esquema vacinal.
 - Depois da inclusão, a lista passa a mostrar todas as datas do paciente escolhido, permitindo conferir as doses geradas.
 - **Consultar** mostra os dados completos, inclusive observações e data da situação.
@@ -126,27 +129,37 @@ O menu lateral divide o sistema em Visão geral (Início), Atendimento (Agendas)
 
 ### Pacientes
 
-- Cadastro com todos os campos exigidos, sexo e UF em seletores e alergias em caixas de seleção opcionais.
-- A consulta apresenta todos os dados cadastrados e os nomes das alergias.
+- **Novo paciente** abre uma tela própria de cadastro, com todos os campos exigidos, sexo e UF em seletores e alergias em caixas de seleção opcionais.
+- **Consultar** abre uma tela própria com todos os dados cadastrados e os nomes das alergias.
 - **Ver agendamentos** abre a tela Agendas com o filtro `usuario`, sem restringir a data.
 - A exclusão pede confirmação e informa que todas as agendas do paciente também serão removidas.
 
 ### Vacinas
 
-- Cadastro de título, descrição opcional e quantidade de doses.
+- **Nova vacina** abre uma tela própria de cadastro de título, descrição opcional e quantidade de doses.
 - Para mais de uma dose, periodicidade e intervalo são exibidos e obrigatórios.
 - Para dose única, periodicidade e intervalo são enviados como nulos.
-- Consulta dos dados completos e exclusão com aviso da cascata das agendas.
+- **Consultar** abre uma tela própria com os dados completos. A exclusão avisa da cascata das agendas.
+
+### Estoque
+
+- Cada vacina aparece em um card com o total de doses dos lotes não vencidos, a quantidade de lotes e avisos de lotes que vencem em breve ou estão vencidos. A soma usa a classificação da validade devolvida pela API, sem considerar reservas, que ainda não existem (#12).
+- Ao clicar no card, abre-se uma tela própria da vacina, separada dos cards, com o total de doses e todos os dados de cada lote: número, fabricante, validade, classificação e quantidade de doses. Os lotes seguem a ordem de validade devolvida pela API, e a classificação é calculada pelo backend: **Válido**, **Vence em breve** (até 30 dias) ou **Vencido** (RN20).
+- **Novo lote** também abre uma tela própria, que solicita vacina, número do lote, fabricante, validade e quantidade de doses. Aberta a partir de uma vacina, ela já vem com essa vacina escolhida. É necessário ter pelo menos uma vacina cadastrada. Depois do cadastro, abre-se a tela da vacina do lote; **Cancelar** volta à tela anterior.
+- **‹ Voltar ao estoque** ou um novo clique em Estoque no menu retornam aos cards.
+- Os dados vêm de `GET /api/lotes/` e `GET /api/vacinas/`, agrupados por vacina na tela.
+- A exclusão de um lote, na tela da vacina, pede confirmação. Um lote já utilizado em uma aplicação não pode ser excluído; nesse caso, a mensagem da API é exibida e o lote permanece na lista.
+- Como a API não oferece edição, um lote cadastrado errado é corrigido por exclusão e novo cadastro, enquanto não tiver sido utilizado.
 
 ### Alergias
 
-- Cadastro simples pelo nome.
+- **Nova alergia** abre uma tela própria de cadastro simples pelo nome.
 - A listagem apresenta ID e nome, ou seja, todos os dados do cadastro.
 - A exclusão informa que a alergia será removida dos pacientes associados; os pacientes são preservados.
 
 ## Validações e respostas
 
-Os formulários usam campos obrigatórios, limites de tamanho e tipos adequados, além das validações da API. Em caso de falha de inclusão, o formulário permanece aberto com os valores preenchidos. Falhas de exclusão ou baixa fecham a confirmação e mostram a mensagem de erro na tela.
+Os formulários usam campos obrigatórios, limites de tamanho e tipos adequados, além das validações da API. Em caso de falha de inclusão, a tela de cadastro permanece aberta com os valores preenchidos; em caso de sucesso, volta para a listagem (no Estoque, para a tela da vacina do lote). Falhas de exclusão ou baixa fecham a confirmação e mostram a mensagem de erro na tela.
 
 Há estados de carregamento, lista vazia, sucesso e erro. Os botões de envio ficam desabilitados durante a operação. As requisições de consulta são canceladas quando a tela ou os filtros mudam, para evitar respostas antigas sobrepondo os novos filtros.
 
@@ -161,7 +174,7 @@ npm test
 npm run build
 ```
 
-Os 14 testes de frontend usam Vitest e React Testing Library com respostas controladas da API. Eles verificam os cadastros, zero ou várias alergias, consulta por paciente, criação das doses, baixa, filtros, confirmações, exclusão, calendário, falhas de conexão e mensagens de validação. Não precisam de banco ou backend em execução e não substituem os testes das regras de negócio do Django.
+Os 18 testes de frontend usam Vitest e React Testing Library com respostas controladas da API. Eles verificam os cadastros, as telas próprias de cadastro e consulta, os cards de vacina com as doses por lote, a classificação da validade, a recusa ao excluir lote utilizado, zero ou várias alergias, consulta por paciente, criação das doses, baixa, filtros, confirmações, exclusão, calendário, falhas de conexão e mensagens de validação. Não precisam de banco ou backend em execução e não substituem os testes das regras de negócio do Django.
 
 O build gera os arquivos em `frontend/dist/`, ignorados pelo Git. Para inspecionar o build localmente:
 

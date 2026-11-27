@@ -108,7 +108,50 @@ export default function Agendas({ usuarioInicial, dataInicial }) {
     }
   }
 
+  function abrirCadastro(aberto) {
+    setNovo(aberto);
+    setDetalhes(null);
+    setVacinaId('');
+    setErro('');
+    setSucesso('');
+  }
+
   const vacinaSelecionada = vacinas.find((vacina) => String(vacina.id) === vacinaId);
+  const mensagens = <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />;
+
+  if (novo) {
+    return (
+      <>
+        <button className="voltar" onClick={() => abrirCadastro(false)} disabled={ocupado}>‹ Voltar para agendas</button>
+        <h1>Novo agendamento</h1>
+        <p className="subtitulo">Informe o paciente, a vacina e a data da primeira dose.</p>
+        {mensagens}
+        <section className="painel" aria-label="Cadastro de agendamento">
+          <form className="formulario" onSubmit={salvar}>
+            <label>Paciente<select name="usuario" defaultValue={filtros.usuario} required autoFocus>
+              <option value="" disabled>Selecione</option>
+              {pacientes.map((paciente) => <option key={paciente.id} value={paciente.id}>{paciente.nome} (#{paciente.id})</option>)}
+            </select></label>
+            <label>Vacina<select name="vacina" value={vacinaId} onChange={(e) => setVacinaId(e.target.value)} required>
+              <option value="" disabled>Selecione</option>
+              {vacinas.map((vacina) => <option key={vacina.id} value={vacina.id}>{vacina.titulo} (#{vacina.id})</option>)}
+            </select></label>
+            {vacinaSelecionada && <p className="campo-inteiro ajuda">
+              Doses: {vacinaSelecionada.doses}.
+              {vacinaSelecionada.doses > 1 && ` Intervalo: ${vacinaSelecionada.intervalo} ${PERIODICIDADES[vacinaSelecionada.periodicidade].toLowerCase()}. Todas as doses serão agendadas automaticamente.`}
+            </p>}
+            <label>Data da primeira dose<input type="date" name="data" defaultValue={filtros.data || dataHoje()} required /></label>
+            <label>Horário<input type="time" name="hora" required /></label>
+            <label className="campo-inteiro">Observações (opcional)<textarea name="observacoes" maxLength={200} /></label>
+            <div className="acoes-formulario">
+              <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar agendamento'}</button>
+              <button type="button" onClick={() => abrirCadastro(false)} disabled={ocupado}>Cancelar</button>
+            </div>
+          </form>
+        </section>
+      </>
+    );
+  }
 
   return (
     <>
@@ -121,7 +164,7 @@ export default function Agendas({ usuarioInicial, dataInicial }) {
       />}
       <div className="cabecalho-pagina">
         <h1>Agendas</h1>
-        <button className="primario" onClick={() => { setNovo(true); setDetalhes(null); setVacinaId(''); }} disabled={ocupado || carregando || !pacientes.length || !vacinas.length}>Novo agendamento</button>
+        <button className="primario" onClick={() => abrirCadastro(true)} disabled={ocupado || carregando || !pacientes.length || !vacinas.length}>Novo agendamento</button>
       </div>
       <p className="subtitulo">Consulte as doses e registre as aplicações ou os cancelamentos.</p>
       <section className="painel" aria-label="Filtros de agendas">
@@ -140,32 +183,8 @@ export default function Agendas({ usuarioInicial, dataInicial }) {
           </div>
         </div>
       </section>
-      <Mensagens erro={erro} sucesso={sucesso} carregando={carregando} tentarNovamente={() => setAtualizacao((valor) => valor + 1)} />
+      {mensagens}
       {!carregando && (!pacientes.length || !vacinas.length) && !erro && <p className="ajuda">Para agendar, cadastre pelo menos um paciente e uma vacina nos menus correspondentes.</p>}
-      {novo && <section className="painel" aria-label="Cadastro de agendamento">
-        <h2>Novo agendamento</h2>
-        <form className="formulario" onSubmit={salvar}>
-          <label>Paciente<select name="usuario" defaultValue={filtros.usuario} required autoFocus>
-            <option value="" disabled>Selecione</option>
-            {pacientes.map((paciente) => <option key={paciente.id} value={paciente.id}>{paciente.nome} (#{paciente.id})</option>)}
-          </select></label>
-          <label>Vacina<select name="vacina" value={vacinaId} onChange={(e) => setVacinaId(e.target.value)} required>
-            <option value="" disabled>Selecione</option>
-            {vacinas.map((vacina) => <option key={vacina.id} value={vacina.id}>{vacina.titulo} (#{vacina.id})</option>)}
-          </select></label>
-          {vacinaSelecionada && <p className="campo-inteiro ajuda">
-            Doses: {vacinaSelecionada.doses}.
-            {vacinaSelecionada.doses > 1 && ` Intervalo: ${vacinaSelecionada.intervalo} ${PERIODICIDADES[vacinaSelecionada.periodicidade].toLowerCase()}. Todas as doses serão agendadas automaticamente.`}
-          </p>}
-          <label>Data da primeira dose<input type="date" name="data" defaultValue={filtros.data || dataHoje()} required /></label>
-          <label>Horário<input type="time" name="hora" required /></label>
-          <label className="campo-inteiro">Observações (opcional)<textarea name="observacoes" maxLength={200} /></label>
-          <div className="acoes-formulario">
-            <button className="primario" disabled={ocupado}>{ocupado ? 'Salvando...' : 'Salvar agendamento'}</button>
-            <button type="button" onClick={() => setNovo(false)} disabled={ocupado}>Cancelar</button>
-          </div>
-        </form>
-      </section>}
       {detalhes && <Detalhes titulo="Dados da agenda" fechar={() => setDetalhes(null)} dados={{
         ID: detalhes.id, Paciente: `${detalhes.usuario_nome} (#${detalhes.usuario})`,
         Vacina: `${detalhes.vacina_titulo} (#${detalhes.vacina})`, Dose: detalhes.dose,
@@ -182,7 +201,7 @@ export default function Agendas({ usuarioInicial, dataInicial }) {
               <td>{formatarData(agenda.data)}<br />{agenda.hora.slice(0, 5)}</td>
               <td><span className={`situacao ${agenda.situacao.toLowerCase()}`}>{agenda.situacao}</span></td>
               <td><div className="acoes">
-                <button onClick={() => { setDetalhes(agenda); setNovo(false); }}>Consultar</button>
+                <button onClick={() => setDetalhes(agenda)}>Consultar</button>
                 {agenda.situacao === 'Agendado' && <>
                   <button onClick={() => setAcao({ agenda, situacao: 'Realizado' })} disabled={ocupado}>Realizar</button>
                   <button onClick={() => setAcao({ agenda, situacao: 'Cancelado' })} disabled={ocupado}>Cancelar agenda</button>
