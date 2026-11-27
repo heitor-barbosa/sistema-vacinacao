@@ -2,7 +2,7 @@
 
 ## Escopo desta etapa
 
-API dos itens 1 a 6 do [enunciado](instrucoes-projeto.md). O frontend React está descrito no [manual do frontend](frontend.md). Do estoque de vacinas, candidato à funcionalidade adicional do Item 7 e [especificado](estoque-e-regras-agendamento.md), já está disponível o cadastro de lotes; a reserva no agendamento e o consumo na baixa ainda não foram implementados.
+API dos itens 1 a 6 do [enunciado](instrucoes-projeto.md). O frontend React está descrito no [manual do frontend](frontend.md). Do estoque de vacinas, candidato à funcionalidade adicional do Item 7 e [especificado](estoque-e-regras-agendamento.md), já estão disponíveis o cadastro de lotes e a reserva de estoque no agendamento; o consumo na baixa ainda não foi implementado.
 
 Há dois apps de domínio: `usuarios` (pacientes e alergias) e `vacinacao` (vacinas, lotes e agendas). Os usuários são pacientes, sem contas de acesso ou autenticação nesta etapa. Não há Django Admin.
 
@@ -90,9 +90,9 @@ python -m pip check
 
 Os testes usam exclusivamente SQLite em memória. O Django aplica as migrations nesse banco temporário e o descarta ao terminar. Esses comandos não conectam ao PostgreSQL do `.env` nem criam bancos nele. Não use `config.test_settings` para executar a aplicação real.
 
-A suíte cobre cadastros, alergias dos pacientes, geração das doses em todas as periodicidades, fins de mês, anos bissextos, rollback em falha, filtros, ordenação do dia, baixa e exclusões em cascata. Para os lotes, cobre cadastro, ordenação, filtro, restrições de quantidade e de número único, classificação da validade e a recusa de exclusão de lote utilizado.
+A suíte cobre cadastros, alergias dos pacientes, geração das doses em todas as periodicidades, fins de mês, anos bissextos, rollback em falha, filtros, ordenação do dia, baixa e exclusões em cascata. Para os lotes, cobre cadastro, ordenação, filtro, restrições de quantidade e de número único, classificação da validade e a recusa de exclusão de lote utilizado. Para a reserva no agendamento, cobre a reserva de todas as doses sem alterar os lotes, a recusa sem agendas parciais, a validade na data da primeira dose, a liberação da reserva ao cancelar ou excluir e os campos de estoque das vacinas.
 
-O pipeline de CI executa, além desses comandos, a mesma suíte em um PostgreSQL real (`python manage.py test usuarios vacinacao`, sem `--settings`). Em 17/11/2026, ela foi executada com sucesso em PostgreSQL 16 dentro do container da API.
+O pipeline de CI executa, além desses comandos, a mesma suíte em um PostgreSQL real (`python manage.py test usuarios vacinacao`, sem `--settings`). O teste de agendamentos simultâneos só roda nessa execução, porque o SQLite não tem bloqueio de linhas; no SQLite ele aparece como ignorado (`skipped`). Em 17/11/2026, ela foi executada com sucesso em PostgreSQL 16 dentro do container da API.
 
 ## Implantação
 
@@ -112,12 +112,12 @@ Todas as rotas terminam com `/`. Não há paginação: as listagens retornam tod
 | GET / DELETE | `/api/vacinas/{id}/` | Consultar / excluir vacina, seus lotes e suas agendas. |
 | GET / POST | `/api/lotes/` | Listar em ordem de validade / cadastrar lote. |
 | GET / DELETE | `/api/lotes/{id}/` | Consultar / excluir lote ainda não utilizado. |
-| GET / POST | `/api/agendas/` | Listar / gerar os agendamentos de todas as doses. |
+| GET / POST | `/api/agendas/` | Listar / gerar os agendamentos de todas as doses, reservando o estoque. |
 | GET / DELETE | `/api/agendas/{id}/` | Consultar / excluir apenas a agenda indicada. |
 | GET | `/api/agendas/hoje/` | Listar agendas da data atual. |
 | POST | `/api/agendas/{id}/baixa/` | Marcar como realizada ou cancelada. |
 
-Consultas retornam HTTP 200, inclusões 201 e exclusões 204 sem corpo. Dados inválidos retornam 400 com os erros; IDs inexistentes retornam 404. Métodos não habilitados retornam 405.
+Consultas retornam HTTP 200, inclusões 201 e exclusões 204 sem corpo. Dados inválidos retornam 400 com os erros; IDs inexistentes retornam 404. Métodos não habilitados retornam 405. Um agendamento sem estoque disponível retorna 409.
 
 ### Alergias
 
@@ -177,6 +177,14 @@ POST `/api/vacinas/`:
 | 4 | Anos |
 
 Para mais de uma dose, periodicidade válida e intervalo inteiro maior que zero são obrigatórios. Para dose única, periodicidade e intervalo podem ser omitidos ou nulos; não participam do cálculo.
+
+As respostas de vacina incluem também três campos somente leitura, calculados para a data atual em `America/Sao_Paulo`. Valores enviados neles no cadastro são ignorados:
+
+| Campo | Significado |
+| --- | --- |
+| `estoque_lotes` | Soma das quantidades dos lotes da vacina com validade na data atual ou depois (RN03). |
+| `doses_reservadas` | Quantidade de agendas da vacina com situação `Agendado`; cada uma reserva uma dose (RN04). |
+| `estoque_disponivel` | `estoque_lotes` menos `doses_reservadas`. Fica em zero quando lotes vencem e as reservas passam do estoque em lotes (RN04). |
 
 ### Lotes
 
@@ -271,6 +279,14 @@ O POST retorna uma **lista** com todas as agendas criadas, mesmo que a vacina te
 `dose`, `situacao` e `data_situacao` são controlados pelo backend; valores enviados nesses campos na criação são ignorados. Cada agenda começa em `Agendado`, com `data_situacao` nula. Hora e observações são copiadas para todas as doses.
 
 O cálculo usa a data inicial para cada dose. Por exemplo, 31 de janeiro + um mês usa o último dia de fevereiro; + dois meses resulta em 31 de março. As doses são criadas em transação: se uma falhar, nenhuma é mantida.
+
+**Reserva de estoque** ([especificação](estoque-e-regras-agendamento.md), RN04, RN05 e RN07): cada agenda `Agendado` reserva uma dose, sem alterar a quantidade dos lotes. O agendamento só é aceito se o estoque disponível na data da **primeira dose**, ou seja, as doses dos lotes válidos nessa data menos as reservas existentes, cobrir **todas** as doses do esquema (decisões D14 e D24). Caso contrário, nenhuma agenda é criada e a API retorna HTTP 409:
+
+```json
+{"detail": "Vacina indisponível: não há doses suficientes da vacina Vacina de exemplo em estoque. O agendamento não foi realizado."}
+```
+
+Durante a verificação, os lotes da vacina ficam bloqueados (`select_for_update`) até o fim da transação, para que agendamentos simultâneos não reservem as mesmas doses. Cancelar ou excluir uma agenda `Agendado` libera a sua reserva. Os erros de validação dos campos e das datas das doses continuam retornando 400 e são verificados antes do estoque.
 
 ### Filtros e agendas do dia
 

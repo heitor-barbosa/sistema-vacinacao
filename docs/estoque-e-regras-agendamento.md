@@ -1,6 +1,6 @@
 # Estoque de vacinas e regras de agendamento
 
-> **Situação:** em implementação. O cadastro de lotes pela API (RN01 a RN03, RN08 e RN20, issue #11) está implementado e documentado no [manual do backend](backend.md#lotes). A tela Estoque já gerencia os lotes ([manual do frontend](frontend.md#estoque)). A reserva no agendamento (#12), o consumo na baixa (#13) e a apresentação da disponibilidade e do lote utilizado nas telas (#14) ainda não foram implementados. As decisões em aberto estão na seção [7](#7-decisões-e-recomendações) e no [planejamento](planejamento.md#3-decisões-pendentes).
+> **Situação:** em implementação. O cadastro de lotes pela API (RN01 a RN03, RN08 e RN20, issue #11) e a reserva no agendamento, com o estoque informado nas respostas de vacina (RN04, RN05 e RN07, issue #12), estão implementados e documentados no [manual do backend](backend.md#lotes). A tela Estoque já gerencia os lotes ([manual do frontend](frontend.md#estoque)). O consumo na baixa (#13) e a apresentação da disponibilidade e do lote utilizado nas telas (#14) ainda não foram implementados. As decisões em aberto estão na seção [7](#7-decisões-e-recomendações) e no [planejamento](planejamento.md#3-decisões-pendentes).
 
 O estoque de vacinas foi sugerido pelo professor em 17/11/2026. Em **23/11/2026**, o responsável confirmou o controle por **lotes, validade e reservas** e retirou da proposta as regras adicionais de reaplicação e a lista de espera.
 
@@ -14,7 +14,7 @@ O estoque permanece candidato à funcionalidade adicional do **Item 7** do [enun
 
 ## 1. Como funciona hoje
 
-- O agendamento (`POST /api/agendas/`) cria todas as doses do esquema sem verificar se a vacina está disponível.
+- Antes da issue #12, o agendamento (`POST /api/agendas/`) criava todas as doses do esquema sem verificar se a vacina estava disponível. Agora ele segue a [seção 3](#3-ordem-das-verificações-no-agendamento).
 - A baixa como Realizado apenas muda a situação; nenhum estoque é consumido.
 - As doses já são geradas conforme `doses`, `periodicidade` e `intervalo` cadastrados na vacina.
 
@@ -38,11 +38,14 @@ As regras RN09 a RN19 foram retiradas em 23/11/2026, junto com a reaplicação e
 
 Ao receber um novo agendamento, o backend executa as verificações nesta ordem e informa a primeira regra não atendida:
 
-1. Validação dos campos, como já é feito hoje.
-2. Verificação do estoque disponível na data da primeira dose (RN04 e RN05).
-3. Geração de todas as doses conforme a regra existente de doses, periodicidade e intervalo.
+1. Validação dos campos, como já era feito (HTTP 400).
+2. Cálculo das datas de todas as doses conforme a regra existente de doses, periodicidade e intervalo (HTTP 400 se as datas ultrapassarem o limite permitido).
+3. Verificação do estoque disponível na data da primeira dose para todas as doses calculadas (RN04 e RN05, HTTP 409).
+4. Criação das agendas.
 
-Se qualquer verificação falhar, nenhuma agenda é criada. As verificações e a criação ocorrem na mesma transação que já existe em `criar_agendas`. Para evitar que dois agendamentos simultâneos usem a mesma última dose, a verificação do estoque bloqueia os lotes da vacina durante a transação (`select_for_update`).
+Se qualquer verificação falhar, nenhuma agenda é criada. As verificações e a criação ocorrem na mesma transação que já existe em `criar_agendas`. Para evitar que dois agendamentos simultâneos usem a mesma última dose, a verificação do estoque bloqueia os lotes da vacina até o fim da transação (`select_for_update`). Um segundo agendamento da mesma vacina espera o primeiro terminar e só então confere o estoque, já com as novas reservas.
+
+O cálculo fica na função `calcular_estoque(vacina, data)` de `vacinacao/services.py`, que devolve `estoque_lotes`, `doses_reservadas` e `estoque_disponivel`. Ela é usada no agendamento e nas respostas de vacina e pode ser reutilizada pela baixa (#13) e pelo agendamento via Telegram (#17).
 
 ## 4. Exemplos
 
@@ -111,15 +114,15 @@ As validações atuais dos campos continuam retornando HTTP 400. A correção de
 
 ## 7. Decisões e recomendações
 
-O documento não deve ser implementado com base em suposições. As recomendações abaixo foram usadas nas regras e precisam ser confirmadas pelo responsável pelo projeto.
+O documento não deve ser implementado com base em suposições. As recomendações abaixo foram usadas nas regras; as que ainda não foram decididas precisam ser confirmadas pelo responsável pelo projeto.
 
 | # | Questão | Recomendação | Alternativa |
 | --- | --- | --- | --- |
-| D14 | Em uma vacina de várias doses, o agendamento reserva estoque para todas as doses do esquema ou só para a primeira? | Todas (RN05). Cada agenda Agendado reserva uma dose, o que mantém exata a conta "100 doses, 100 agendamentos" e evita esquemas que começam sem doses para terminar. Esquemas longos mantêm doses reservadas por mais tempo. | Reservar só a primeira dose, o que exige marcar quais agendas têm reserva e conferir as demais doses somente na aplicação. |
+| D14 | Em uma vacina de várias doses, o agendamento reserva estoque para todas as doses do esquema ou só para a primeira? | **Decidida em 27/11/2026:** todas (RN05). Cada agenda Agendado reserva uma dose, o que mantém exata a conta "100 doses, 100 agendamentos" e evita esquemas que começam sem doses para terminar. Esquemas longos mantêm doses reservadas por mais tempo. | Reservar só a primeira dose, o que exige marcar quais agendas têm reserva e conferir as demais doses somente na aplicação. |
 | D15 | O agendamento reserva estoque? | **Decidida em 17/11/2026:** sim. Cada agenda reserva uma dose do estoque disponível. **Confirmada em 23/11/2026:** sem estoque, apenas informar indisponibilidade e recusar o agendamento (RN04, RN05). | — |
 | D18 | Na baixa Realizado, quem escolhe o lote? | **Decidida em 17/11/2026:** o sistema, pelo lote válido que vence primeiro. O estoque só diminui na confirmação da aplicação, e a escolha automática permite ao sistema controlar a validade (RN06, RN20). | — |
 | D19 | A baixa Realizado pode ser recusada por falta de estoque? Isso altera o comportamento atual do Item 5. Com a reserva, só acontece quando lotes vencem. | Sim, para manter o estoque coerente com as aplicações. | Permitir a baixa sem lote, deixando o estoque inconsistente. |
-| D24 | Como considerar a validade dos lotes nas datas futuras das doses? | Verificar o estoque somente na data da primeira dose (RN05). Se os lotes vencerem antes das doses seguintes, as agendas são mantidas e a falta aparece na baixa (RN04, RN06), conforme D19. | Verificar cada dose com os lotes válidos na sua data, o que recusa mais esquemas longos quando os lotes atuais vencem antes das últimas doses. |
+| D24 | Como considerar a validade dos lotes nas datas futuras das doses? | **Decidida em 27/11/2026:** verificar o estoque somente na data da primeira dose (RN05). Se os lotes vencerem antes das doses seguintes, as agendas são mantidas e a falta aparece na baixa (RN04, RN06), conforme D19. | Verificar cada dose com os lotes válidos na sua data, o que recusa mais esquemas longos quando os lotes atuais vencem antes das últimas doses. |
 
 ## 8. Testes previstos
 
